@@ -429,3 +429,30 @@ body {
   font-weight: 600;
   flex-shrink: 0;
 }
+
+.not-found-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--color-gray-50);
+}
+
+.not-found-card {
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  padding: 2.5rem 2rem;
+  background: var(--color-white);
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.not-found-code {
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-blue);
+  margin-bottom: 0.5rem;
+}

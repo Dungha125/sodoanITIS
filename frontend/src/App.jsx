@@ -15,6 +15,7 @@ import CohortsPage from './pages/CohortsPage';
 import PeriodsPage from './pages/PeriodsPage';
 import AdminPage from './pages/AdminPage';
 import OrganizationPage from './pages/OrganizationPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30000 } } });
 
@@ -37,7 +38,9 @@ function AppRoutes() {
         <Route path="students" element={<PermissionRoute permission="students.view"><StudentsPage /></PermissionRoute>} />
         <Route path="periods" element={<PermissionRoute permission="periods.manage"><PeriodsPage /></PermissionRoute>} />
         <Route path="admin" element={<PermissionRoute permission="users.manage"><AdminPage /></PermissionRoute>} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
