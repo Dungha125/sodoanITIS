@@ -132,7 +132,7 @@ export default function AdminPage() {
         <div className="card border-0 shadow-sm">
           <div className="card-header bg-transparent">
             <strong>IP bị chặn</strong>
-            <span className="text-muted small ms-2">Tự động khi &gt;10 request/giây</span>
+            <span className="text-muted small ms-2">Tự động khi &gt;20 request/0.1s (admin miễn)</span>
           </div>
           <table className="table table-hover mb-0">
             <thead className="table-light">
