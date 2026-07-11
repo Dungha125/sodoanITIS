@@ -8,6 +8,7 @@ import EmptyOrgBanner from '../components/common/EmptyOrgBanner';
 import PageHeader from '../components/common/PageHeader';
 import DataTableCard from '../components/common/DataTableCard';
 import EmptyState from '../components/common/EmptyState';
+import AppModal from '../components/common/AppModal';
 import { useAuth } from '../contexts/AuthContext';
 
 const ROLE_LABELS = {
@@ -203,87 +204,88 @@ export default function AdminPage() {
       )}
 
       {modal && (
-        <div className="modal show d-block" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <form onSubmit={handleSubmit((d) => {
-                const payload = { ...d };
-                payload.department_id = d.department_id ? +d.department_id : null;
-                payload.lien_chi_id = d.lien_chi_id ? +d.lien_chi_id : null;
-                if (modal.id && !payload.password) delete payload.password;
-                saveMut.mutate(payload);
-              })}>
-                <div className="modal-header">
-                  <h5>{modal.id ? 'Sửa tài khoản' : 'Tạo tài khoản mới'}</h5>
-                  <button type="button" className="btn-close" onClick={() => setModal(null)}></button>
+        <AppModal
+          title={modal.id ? 'Sửa tài khoản' : 'Tạo tài khoản mới'}
+          size="modal-lg"
+          onClose={() => setModal(null)}
+          footer={(
+            <>
+              <button type="button" className="btn btn-light" onClick={() => setModal(null)}>Hủy</button>
+              <button type="submit" form="user-form" className="btn btn-primary">Lưu</button>
+            </>
+          )}
+        >
+          <form
+            id="user-form"
+            onSubmit={handleSubmit((d) => {
+              const payload = { ...d };
+              payload.department_id = d.department_id ? +d.department_id : null;
+              payload.lien_chi_id = d.lien_chi_id ? +d.lien_chi_id : null;
+              if (modal.id && !payload.password) delete payload.password;
+              saveMut.mutate(payload);
+            })}
+          >
+            <div className="row g-3">
+              {!modal.id && (
+                <div className="col-md-6">
+                  <label className="form-label">Tài khoản</label>
+                  <input className="form-control" {...register('username', { required: true })} placeholder="MSSV (vd: 2254800001)" />
+                  <p className="form-text small">Với vai trò Đoàn viên: username = MSSV, chưa cần chọn Chi đoàn.</p>
                 </div>
-                <div className="modal-body row g-3">
-                  {!modal.id && (
-                    <div className="col-md-6">
-                      <label className="form-label">Tài khoản</label>
-                      <input className="form-control" {...register('username', { required: true })} placeholder="MSSV (vd: 2254800001)" />
-                      <p className="form-text small">Với vai trò Đoàn viên: username = MSSV, chưa cần chọn Chi đoàn.</p>
-                    </div>
+              )}
+              <div className={modal.id ? 'col-md-12' : 'col-md-6'}>
+                <label className="form-label">Họ tên</label>
+                <input className="form-control" {...register('full_name', { required: true })} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">Email</label>
+                <input type="email" className="form-control" {...register('email', { required: true })} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">{modal.id ? 'Mật khẩu mới (để trống nếu giữ)' : 'Mật khẩu'}</label>
+                <input type="password" className="form-control" {...register('password', { required: !modal.id })} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">Vai trò</label>
+                <select className="form-select" {...register('role_code', { required: true })} onChange={(e) => {
+                  const v = e.target.value;
+                  setRoleCode(v);
+                  if (!['bi_thu', 'pho_bi_thu', 'ctv'].includes(v)) setValue('department_id', '');
+                  if (v !== 'lien_chi_doan') setValue('lien_chi_id', '');
+                }}>
+                  {(roles || []).map((r) => (
+                    <option key={r.code} value={r.code}>{ROLE_LABELS[r.code] || r.name}</option>
+                  ))}
+                </select>
+              </div>
+              {needsLienChi && (
+                <div className="col-md-6">
+                  <label className="form-label">Liên Chi đoàn *</label>
+                  <select className="form-select" {...register('lien_chi_id', { required: needsLienChi })}>
+                    <option value="">— Chọn Liên chi —</option>
+                    {(lienChiList || []).map((lc) => <option key={lc.id} value={lc.id}>{lc.name}</option>)}
+                  </select>
+                  {!(lienChiList || []).length && (
+                    <p className="form-text small text-warning">Chưa có Liên chi — tạo ở menu Liên chi trước.</p>
                   )}
-                  <div className={modal.id ? 'col-md-12' : 'col-md-6'}>
-                    <label className="form-label">Họ tên</label>
-                    <input className="form-control" {...register('full_name', { required: true })} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Email</label>
-                    <input type="email" className="form-control" {...register('email', { required: true })} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">{modal.id ? 'Mật khẩu mới (để trống nếu giữ)' : 'Mật khẩu'}</label>
-                    <input type="password" className="form-control" {...register('password', { required: !modal.id })} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Vai trò</label>
-                    <select className="form-select" {...register('role_code', { required: true })} onChange={(e) => {
-                      const v = e.target.value;
-                      setRoleCode(v);
-                      if (!['bi_thu', 'pho_bi_thu', 'ctv'].includes(v)) setValue('department_id', '');
-                      if (v !== 'lien_chi_doan') setValue('lien_chi_id', '');
-                    }}>
-                      {(roles || []).map((r) => (
-                        <option key={r.code} value={r.code}>{ROLE_LABELS[r.code] || r.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {needsLienChi && (
-                    <div className="col-md-6">
-                      <label className="form-label">Liên Chi đoàn *</label>
-                      <select className="form-select" {...register('lien_chi_id', { required: needsLienChi })}>
-                        <option value="">— Chọn Liên chi —</option>
-                        {(lienChiList || []).map((lc) => <option key={lc.id} value={lc.id}>{lc.name}</option>)}
-                      </select>
-                      {!(lienChiList || []).length && (
-                        <p className="form-text small text-warning">Chưa có Liên chi — tạo ở menu Liên chi trước.</p>
-                      )}
-                    </div>
-                  )}
-                  {needsDept && (
-                    <div className="col-md-6">
-                      <label className="form-label">Chi đoàn</label>
-                      <select className="form-select" {...register('department_id', { required: needsDept })}>
-                        <option value="">Chọn chi đoàn</option>
-                        {(departments || []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
-                    </div>
-                  )}
-                  <div className="col-md-6">
-                    <label className="form-label">SĐT</label>
-                    <input className="form-control" {...register('phone')} />
-                  </div>
                 </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>Hủy</button>
-                  <button type="submit" className="btn btn-primary">Lưu</button>
+              )}
+              {needsDept && (
+                <div className="col-md-6">
+                  <label className="form-label">Chi đoàn</label>
+                  <select className="form-select" {...register('department_id', { required: needsDept })}>
+                    <option value="">Chọn chi đoàn</option>
+                    {(departments || []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
                 </div>
-              </form>
+              )}
+              <div className="col-md-6">
+                <label className="form-label">SĐT</label>
+                <input className="form-control" {...register('phone')} />
+              </div>
             </div>
-          </div>
-        </div>
+          </form>
+        </AppModal>
       )}
     </div>
   );
