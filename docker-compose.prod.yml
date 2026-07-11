@@ -1,0 +1,108 @@
+services:
+
+  db:
+
+    image: postgres:16-alpine
+
+    environment:
+
+      POSTGRES_USER: postgres
+
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+      POSTGRES_DB: so_doan
+
+    volumes:
+
+      - pgdata:/var/lib/postgresql/data
+
+      - ./postgres/init-security.sql:/docker-entrypoint-initdb.d/01-security.sql:ro
+
+    restart: always
+
+    # Database KHÔNG expose port — chỉ kết nối nội bộ Docker network
+
+    healthcheck:
+
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+
+      interval: 5s
+
+      timeout: 5s
+
+      retries: 5
+
+
+
+  backend:
+
+    build:
+
+      context: ./backend
+
+      dockerfile: Dockerfile.prod
+
+    environment:
+
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@db:5432/so_doan
+
+      SECRET_KEY: ${SECRET_KEY}
+
+      DEBUG: "false"
+
+      CORS_ORIGINS: https://sodoan.lcdkhoacntt1.com,http://sodoan.lcdkhoacntt1.com
+
+      RATE_LIMIT_MAX_REQUESTS: 10
+
+      RATE_LIMIT_WINDOW_SECONDS: 1
+
+      SECURITY_WHITELIST_IPS: 127.0.0.1,::1
+
+    volumes:
+
+      - ./storage:/app/storage
+
+    depends_on:
+
+      db:
+
+        condition: service_healthy
+
+    restart: always
+
+    command: >
+
+      sh -c "python scripts/seed_data.py &&
+
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips='*'"
+
+
+
+  frontend:
+
+    build:
+
+      context: ./frontend
+
+      dockerfile: Dockerfile.prod
+
+      args:
+
+        VITE_API_URL: https://sodoan.lcdkhoacntt1.com/api/v1
+
+    ports:
+
+      - "80:80"
+
+    depends_on:
+
+      - backend
+
+    restart: always
+
+
+
+volumes:
+
+  pgdata:
+
