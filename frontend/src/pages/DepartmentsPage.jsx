@@ -5,6 +5,9 @@ import { toast } from 'react-toastify';
 import { departmentsApi, cohortsApi, studentsApi, lienChiApi } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import PageHeader from '../components/common/PageHeader';
+import DataTableCard from '../components/common/DataTableCard';
+import EmptyState from '../components/common/EmptyState';
 
 export default function DepartmentsPage() {
   const { user } = useAuth();
@@ -107,22 +110,24 @@ export default function DepartmentsPage() {
     const d = detailData;
     return (
       <div>
-        <button className="btn btn-sm btn-outline-secondary mb-3" onClick={() => setDetail(null)}>
-          <i className="bi bi-arrow-left me-1"></i> Quay lại
+        <button type="button" className="back-link border-0 bg-transparent" onClick={() => setDetail(null)}>
+          <i className="bi bi-arrow-left"></i> Quay lại danh sách
         </button>
         {loadingDetail ? <LoadingSpinner /> : (
           <>
-            <h4 className="mb-1">{d?.name}</h4>
-            <p className="text-muted small">Khóa {d?.cohort_name} · Bí thư: {d?.secretary_name} · {d?.secretary_phone}</p>
-            <div className="row g-3 mb-4">
-              <div className="col-md-3"><div className="card border-0 shadow-sm p-3 text-center"><div className="text-muted small">Sĩ số</div><div className="fs-4 fw-bold">{d?.student_count}</div></div></div>
-              <div className="col-md-3"><div className="card border-0 shadow-sm p-3 text-center"><div className="text-muted small">Đã nộp sổ</div><div className="fs-4 fw-bold text-success">{d?.book_submitted}</div></div></div>
-              <div className="col-md-3"><div className="card border-0 shadow-sm p-3 text-center"><div className="text-muted small">Đã nộp phí</div><div className="fs-4 fw-bold text-primary">{d?.fee_submitted}</div></div></div>
-              <div className="col-md-3"><div className="card border-0 shadow-sm p-3 text-center"><div className="text-muted small">Hoàn thành</div><div className="fs-4 fw-bold">{d?.completion_rate}%</div></div></div>
+            <PageHeader
+              title={d?.name}
+              subtitle={`Khóa ${d?.cohort_name} · Bí thư: ${d?.secretary_name || '—'}`}
+            />
+            <div className="detail-stats">
+              <div className="detail-stat-item"><div className="label">Sĩ số</div><div className="value">{d?.student_count}</div></div>
+              <div className="detail-stat-item"><div className="label">Đã nộp sổ</div><div className="value text-success">{d?.book_submitted}</div></div>
+              <div className="detail-stat-item"><div className="label">Đã nộp phí</div><div className="value text-primary">{d?.fee_submitted}</div></div>
+              <div className="detail-stat-item"><div className="label">Hoàn thành</div><div className="value">{d?.completion_rate}%</div></div>
             </div>
-            <div className="card border-0 shadow-sm">
-              <div className="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <strong>Danh sách đoàn viên ({deptStudents?.total ?? 0})</strong>
+            <DataTableCard
+              title={`Đoàn viên (${deptStudents?.total ?? 0})`}
+              toolbar={
                 <div className="d-flex gap-2">
                   <button className="btn btn-sm btn-primary" onClick={() => setAddMemberDept(detail)}>
                     <i className="bi bi-person-plus me-1"></i> Thêm từ tài khoản
@@ -131,19 +136,19 @@ export default function DepartmentsPage() {
                     <i className="bi bi-upload me-1"></i> Import Excel
                   </button>
                 </div>
-              </div>
+              }
+            >
               {loadingStudents ? <LoadingSpinner /> : studentsError ? (
-                <div className="alert alert-danger m-3 mb-0">Không tải được danh sách đoàn viên.</div>
+                <div className="alert alert-danger m-3">Không tải được danh sách đoàn viên.</div>
               ) : (
               <table className="table table-hover mb-0">
                 <thead className="table-light">
                   <tr><th>MSSV</th><th>Họ tên</th><th>Giới tính</th><th>Ngày sinh</th><th>SĐT</th><th>Nộp sổ</th><th>Nộp phí</th></tr>
                 </thead>
                 <tbody>
-                  {(deptStudents?.items || []).length === 0 && (
-                    <tr><td colSpan={7} className="text-center text-muted py-4">Chưa có đoàn viên. Tạo tài khoản (vai trò Đoàn viên) trước, sau đó thêm vào Chi đoàn.</td></tr>
-                  )}
-                  {(deptStudents?.items || []).map((s) => (
+                  {(deptStudents?.items || []).length === 0 ? (
+                    <tr><td colSpan={7}><EmptyState icon="bi-people" title="Chưa có đoàn viên" description="Tạo tài khoản Đoàn viên trước, sau đó thêm vào Chi đoàn." /></td></tr>
+                  ) : (deptStudents?.items || []).map((s) => (
                     <tr key={s.id}>
                       <td><code>{s.mssv}</code></td>
                       <td>{s.full_name}</td>
@@ -157,7 +162,7 @@ export default function DepartmentsPage() {
                 </tbody>
               </table>
               )}
-            </div>
+            </DataTableCard>
           </>
         )}
         {importDept && (
@@ -223,33 +228,36 @@ export default function DepartmentsPage() {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h4>Quản lý Chi đoàn</h4>
-        <button className="btn btn-danger btn-sm" onClick={() => { setModal({}); reset(); }}>
+      <PageHeader title="Quản lý Chi đoàn" subtitle="Tạo Chi đoàn, thêm đoàn viên từ tài khoản hoặc import Excel.">
+        <button className="btn btn-primary" onClick={() => { setModal({}); reset(); }}>
           <i className="bi bi-plus-lg me-1"></i> Thêm Chi đoàn
         </button>
-      </div>
+      </PageHeader>
 
-      <div className="card border-0 shadow-sm">
+      <DataTableCard>
         <table className="table table-hover mb-0">
           <thead className="table-light">
-            <tr><th>Chi đoàn</th><th>Khóa</th><th>Bí thư</th><th>Sĩ số</th><th></th></tr>
+            <tr><th>Chi đoàn</th><th>Khóa</th><th>Bí thư</th><th>Sĩ số</th><th className="text-end">Thao tác</th></tr>
           </thead>
           <tbody>
-            {(data || []).map((d) => (
+            {(data || []).length === 0 ? (
+              <tr><td colSpan={5}><EmptyState icon="bi-diagram-3" title="Chưa có Chi đoàn" /></td></tr>
+            ) : (data || []).map((d) => (
               <tr key={d.id}>
-                <td><button className="btn btn-link p-0" onClick={() => setDetail(d.id)}>{d.name}</button></td>
-                <td>{d.cohort_name || '—'}</td>
+                <td>
+                  <button className="btn btn-link p-0 fw-medium text-decoration-none" onClick={() => setDetail(d.id)}>{d.name}</button>
+                </td>
+                <td><span className="badge bg-light text-dark border">{d.cohort_name || '—'}</span></td>
                 <td>{d.secretary_name || '—'}</td>
                 <td>{d.student_count}</td>
-                <td>
-                  <button className="btn btn-sm btn-outline-secondary" onClick={() => openEdit(d)}><i className="bi bi-pencil"></i></button>
+                <td className="text-end">
+                  <button className="btn btn-sm btn-outline-secondary" onClick={() => openEdit(d)} title="Sửa"><i className="bi bi-pencil"></i></button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </DataTableCard>
 
       {modal && (
         <div className="modal show d-block" style={{ background: 'rgba(0,0,0,0.5)' }}>
@@ -304,7 +312,7 @@ export default function DepartmentsPage() {
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>Hủy</button>
-                  <button type="submit" className="btn btn-danger">Lưu</button>
+                  <button type="submit" className="btn btn-primary">Lưu</button>
                 </div>
               </form>
             </div>

@@ -5,6 +5,9 @@ import { toast } from 'react-toastify';
 import { usersApi, departmentsApi, lienChiApi, securityApi } from '../api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyOrgBanner from '../components/common/EmptyOrgBanner';
+import PageHeader from '../components/common/PageHeader';
+import DataTableCard from '../components/common/DataTableCard';
+import EmptyState from '../components/common/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
 
 const ROLE_LABELS = {
@@ -20,6 +23,7 @@ const ROLE_LABELS = {
 export default function AdminPage() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role_code === 'super_admin';
+  const isLienChi = user?.role_code === 'lien_chi_doan';
   const qc = useQueryClient();
   const [tab, setTab] = useState('users');
   const [modal, setModal] = useState(null);
@@ -105,19 +109,18 @@ export default function AdminPage() {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h4 className="mb-1">Quản trị hệ thống</h4>
-          <p className="text-muted small mb-0">Tài khoản & bảo mật</p>
-        </div>
+      <PageHeader
+        title="Quản trị hệ thống"
+        subtitle={isLienChi ? 'Tài khoản thuộc Liên chi của bạn (Bí thư, Đoàn viên...)' : 'Tài khoản & bảo mật'}
+      >
         {tab === 'users' && (
-          <button className="btn btn-primary btn-sm" onClick={openCreate}>
+          <button className="btn btn-primary" onClick={openCreate}>
             <i className="bi bi-person-plus me-1"></i> Tạo tài khoản
           </button>
         )}
-      </div>
+      </PageHeader>
 
-      <ul className="nav nav-tabs mb-4">
+      <ul className="nav nav-tabs-app">
         <li className="nav-item">
           <button className={`nav-link ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Tài khoản</button>
         </li>
@@ -162,16 +165,18 @@ export default function AdminPage() {
       <>
       <EmptyOrgBanner departments={departments} lienChi={lienChiList} />
 
-      <div className="card border-0 shadow-sm">
-        <div className="table-responsive">
-          <table className="table table-hover mb-0">
-            <thead className="table-light">
-              <tr>
-                <th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th><th>Liên chi</th><th>Chi đoàn</th><th>Trạng thái</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(users || []).map((u) => (
+      <DataTableCard>
+        <table className="table table-hover mb-0">
+          <thead className="table-light">
+            <tr>
+              <th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th><th>Liên chi</th><th>Chi đoàn</th><th>Trạng thái</th><th className="text-end">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(users || []).length === 0 && (
+              <tr><td colSpan={7}><EmptyState icon="bi-people" title="Chưa có tài khoản" /></td></tr>
+            )}
+            {(users || []).map((u) => (
                 <tr key={u.id} className={!u.is_active ? 'text-muted' : ''}>
                   <td><code>{u.username}</code></td>
                   <td>{u.full_name}</td>
@@ -179,9 +184,9 @@ export default function AdminPage() {
                   <td>{u.lien_chi_name || '—'}</td>
                   <td>{u.department_name || '—'}</td>
                   <td><span className={`badge bg-${u.is_active ? 'success' : 'secondary'}`}>{u.is_active ? 'Hoạt động' : 'Vô hiệu'}</span></td>
-                  <td>
+                  <td className="text-end text-nowrap">
                     <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => openEdit(u)}><i className="bi bi-pencil"></i></button>
-                    {u.is_active && u.username !== 'admin' && (
+                    {u.is_active && u.username !== 'admin' && u.role_code !== 'super_admin' && (
                       <button className="btn btn-sm btn-outline-dark" onClick={() => { if (confirm('Vô hiệu hóa tài khoản?')) deactivateMut.mutate(u.id); }}>
                         <i className="bi bi-slash-circle"></i>
                       </button>
@@ -191,8 +196,7 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
+      </DataTableCard>
       </>
       )}
 
@@ -239,7 +243,11 @@ export default function AdminPage() {
                       if (!['bi_thu', 'pho_bi_thu', 'ctv'].includes(v)) setValue('department_id', '');
                       if (v !== 'lien_chi_doan') setValue('lien_chi_id', '');
                     }}>
-                      {(roles || []).filter((r) => r.code !== 'super_admin' || modal.id).map((r) => (
+                      {(roles || []).filter((r) => (
+                        isSuperAdmin
+                          ? (r.code !== 'super_admin' || modal.id)
+                          : !['super_admin', 'doan_truong', 'lien_chi_doan'].includes(r.code)
+                      )).map((r) => (
                         <option key={r.code} value={r.code}>{ROLE_LABELS[r.code] || r.name}</option>
                       ))}
                     </select>

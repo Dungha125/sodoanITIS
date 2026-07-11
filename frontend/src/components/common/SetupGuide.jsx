@@ -33,7 +33,7 @@ export default function SetupGuide({ cohorts, departments, lienChi }) {
   if (done) return null;
 
   return (
-    <div className="card border-0 shadow-sm mb-4 border-start border-4 border-primary">
+    <div className="card border-0 shadow-sm mb-4 border-start border-4 border-primary setup-guide-card">
       <div className="card-body">
         <h6 className="fw-bold mb-3"><i className="bi bi-list-check me-2 text-primary"></i>Thiết lập hệ thống</h6>
         <div className="row g-2">

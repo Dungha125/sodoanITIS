@@ -12,29 +12,39 @@ export default function Topbar() {
     navigate('/login');
   };
 
+  const contextLabel = user?.department_name || user?.lien_chi_name || user?.role_name;
+
   return (
     <header className="topbar d-flex align-items-center justify-content-between px-4 py-2">
-      <div className="d-flex align-items-center">
-        <input type="search" className="form-control form-control-sm" placeholder="Tìm kiếm..." style={{ width: 280 }} />
+      <div className="d-flex align-items-center gap-2 min-w-0">
+        <span className="user-role-chip d-none d-md-inline">{user?.role_name}</span>
+        {contextLabel && (
+          <span className="text-muted small text-truncate d-none d-lg-inline">
+            {contextLabel}
+          </span>
+        )}
       </div>
-      <div className="d-flex align-items-center gap-3">
-        <button className="btn btn-sm btn-outline-secondary" onClick={toggle} title="Dark mode">
+      <div className="d-flex align-items-center gap-2">
+        <button className="btn btn-sm btn-light border" onClick={toggle} title="Đổi giao diện">
           <i className={`bi ${dark ? 'bi-sun' : 'bi-moon'}`}></i>
         </button>
-        <button className="btn btn-sm btn-outline-secondary position-relative">
-          <i className="bi bi-bell"></i>
-        </button>
         <div className="dropdown">
-          <button className="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown">
-            <i className="bi bi-person-circle me-1"></i>
-            {user?.full_name}
+          <button className="btn btn-sm btn-primary dropdown-toggle d-flex align-items-center gap-1" data-bs-toggle="dropdown">
+            <i className="bi bi-person-circle"></i>
+            <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: 140 }}>{user?.full_name}</span>
           </button>
-          <ul className="dropdown-menu dropdown-menu-end">
-            <li><span className="dropdown-item-text small fw-semibold">{user?.role_name}</span></li>
-            {user?.lien_chi_name && <li><span className="dropdown-item-text small text-muted">{user.lien_chi_name}</span></li>}
-            {user?.department_name && <li><span className="dropdown-item-text small text-muted">{user.department_name}</span></li>}
+          <ul className="dropdown-menu dropdown-menu-end shadow-sm">
+            <li className="px-3 py-2">
+              <div className="fw-semibold small">{user?.full_name}</div>
+              <div className="text-muted small">{user?.role_name}</div>
+              {user?.department_name && <div className="text-muted small">{user.department_name}</div>}
+            </li>
             <li><hr className="dropdown-divider" /></li>
-            <li><button className="dropdown-item" onClick={handleLogout}>Đăng xuất</button></li>
+            <li>
+              <button className="dropdown-item text-danger" onClick={handleLogout}>
+                <i className="bi bi-box-arrow-right me-2"></i>Đăng xuất
+              </button>
+            </li>
           </ul>
         </div>
       </div>

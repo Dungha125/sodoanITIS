@@ -4,6 +4,10 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { cohortsApi } from '../api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import PageHeader from '../components/common/PageHeader';
+import DataTableCard from '../components/common/DataTableCard';
+import EmptyState from '../components/common/EmptyState';
+import AppModal from '../components/common/AppModal';
 
 export default function CohortsPage() {
   const qc = useQueryClient();
@@ -54,31 +58,31 @@ export default function CohortsPage() {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <div>
-          <h4 className="mb-1">Quản lý Khóa</h4>
-          <p className="text-muted small mb-0">Vô hiệu hóa có thể khôi phục. Tạo lại tên khóa cũ sẽ tự kích hoạt lại.</p>
-        </div>
-        <button className="btn btn-primary btn-sm" onClick={() => { setModal({}); reset(); }}>
+      <PageHeader
+        title="Quản lý Khóa"
+        subtitle="Vô hiệu hóa có thể khôi phục. Tạo lại tên khóa cũ sẽ tự kích hoạt lại."
+      >
+        <button className="btn btn-primary" onClick={() => { setModal({}); reset(); }}>
           <i className="bi bi-plus-lg me-1"></i> Thêm khóa
         </button>
-      </div>
+      </PageHeader>
 
-      <div className="form-check form-switch mb-3">
-        <input className="form-check-input" type="checkbox" id="showInactive" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
-        <label className="form-check-label" htmlFor="showInactive">Hiện khóa đã vô hiệu hóa</label>
-      </div>
-
-      <div className="card border-0 shadow-sm">
+      <DataTableCard
+        toolbar={
+          <div className="form-check form-switch mb-0">
+            <input className="form-check-input" type="checkbox" id="showInactive" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
+            <label className="form-check-label small" htmlFor="showInactive">Hiện khóa vô hiệu hóa</label>
+          </div>
+        }
+      >
         <table className="table table-hover mb-0">
           <thead className="table-light">
-            <tr><th>Tên khóa</th><th>Số Chi đoàn</th><th>Trạng thái</th><th></th></tr>
+            <tr><th>Tên khóa</th><th>Số Chi đoàn</th><th>Trạng thái</th><th className="text-end">Thao tác</th></tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
-              <tr><td colSpan={4} className="text-center text-muted py-4">Chưa có khóa</td></tr>
-            )}
-            {rows.map((c) => (
+            {rows.length === 0 ? (
+              <tr><td colSpan={4}><EmptyState icon="bi-mortarboard" title="Chưa có khóa" description="Thêm khóa đầu tiên để bắt đầu." /></td></tr>
+            ) : rows.map((c) => (
               <tr key={c.id} className={!c.is_active ? 'text-muted' : ''}>
                 <td><strong>{c.name}</strong></td>
                 <td>{c.department_count}</td>
@@ -87,7 +91,7 @@ export default function CohortsPage() {
                     {c.is_active ? 'Hoạt động' : 'Vô hiệu hóa'}
                   </span>
                 </td>
-                <td className="text-nowrap">
+                <td className="text-end text-nowrap">
                   {c.is_active ? (
                     <>
                       <button className="btn btn-sm btn-outline-secondary me-1" title="Sửa" onClick={() => { setModal(c); setValue('name', c.name); }}>
@@ -115,32 +119,27 @@ export default function CohortsPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </DataTableCard>
 
       {modal && (
-        <div className="modal show d-block" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleSubmit((d) => saveMut.mutate(d))}>
-                <div className="modal-header">
-                  <h5>{modal.id ? 'Sửa khóa' : 'Thêm khóa'}</h5>
-                  <button type="button" className="btn-close" onClick={() => setModal(null)}></button>
-                </div>
-                <div className="modal-body">
-                  <label className="form-label">Tên khóa (VD: D25, D26)</label>
-                  <input className="form-control" placeholder="D25" {...register('name', { required: true })} />
-                  {!modal.id && (
-                    <p className="form-text small">Nếu khóa đã bị vô hiệu hóa trước đó, tạo cùng tên sẽ tự khôi phục.</p>
-                  )}
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>Hủy</button>
-                  <button type="submit" className="btn btn-primary">Lưu</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+        <AppModal
+          title={modal.id ? 'Sửa khóa' : 'Thêm khóa'}
+          onClose={() => setModal(null)}
+          footer={
+            <>
+              <button type="button" className="btn btn-light" onClick={() => setModal(null)}>Hủy</button>
+              <button type="submit" form="cohort-form" className="btn btn-primary">Lưu</button>
+            </>
+          }
+        >
+          <form id="cohort-form" onSubmit={handleSubmit((d) => saveMut.mutate(d))}>
+            <label className="form-label">Tên khóa (VD: D25, D26)</label>
+            <input className="form-control" placeholder="D25" {...register('name', { required: true })} />
+            {!modal.id && (
+              <p className="form-text small mt-2">Nếu khóa đã bị vô hiệu hóa, tạo cùng tên sẽ tự khôi phục.</p>
+            )}
+          </form>
+        </AppModal>
       )}
     </div>
   );

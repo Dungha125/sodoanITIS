@@ -4,6 +4,10 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { periodsApi } from '../api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import PageHeader from '../components/common/PageHeader';
+import DataTableCard from '../components/common/DataTableCard';
+import EmptyState from '../components/common/EmptyState';
+import AppModal from '../components/common/AppModal';
 
 export default function PeriodsPage() {
   const qc = useQueryClient();
@@ -54,31 +58,31 @@ export default function PeriodsPage() {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <div>
-          <h4 className="mb-1">Kỳ cập nhật trạng thái</h4>
-          <p className="text-muted small mb-0">Bí thư chỉ cập nhật nộp sổ/phí trong khoảng thời gian đang mở. Vô hiệu hóa có thể khôi phục.</p>
-        </div>
-        <button className="btn btn-primary btn-sm" onClick={() => { setModal({}); reset(); }}>
+      <PageHeader
+        title="Kỳ cập nhật"
+        subtitle="Bí thư chỉ cập nhật nộp sổ/phí trong khoảng thời gian đang mở."
+      >
+        <button className="btn btn-primary" onClick={() => { setModal({}); reset(); }}>
           <i className="bi bi-plus-lg me-1"></i> Thêm kỳ
         </button>
-      </div>
+      </PageHeader>
 
-      <div className="form-check form-switch mb-3">
-        <input className="form-check-input" type="checkbox" id="showInactivePeriods" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
-        <label className="form-check-label" htmlFor="showInactivePeriods">Hiện kỳ đã vô hiệu hóa</label>
-      </div>
-
-      <div className="card border-0 shadow-sm">
+      <DataTableCard
+        toolbar={
+          <div className="form-check form-switch mb-0">
+            <input className="form-check-input" type="checkbox" id="showInactivePeriods" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
+            <label className="form-check-label small" htmlFor="showInactivePeriods">Hiện kỳ vô hiệu hóa</label>
+          </div>
+        }
+      >
         <table className="table table-hover mb-0">
           <thead className="table-light">
             <tr><th>Tên</th><th>Bắt đầu</th><th>Kết thúc</th><th>Trạng thái</th><th></th></tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
-              <tr><td colSpan={5} className="text-center text-muted py-4">Chưa có kỳ cập nhật</td></tr>
-            )}
-            {rows.map((p) => (
+            {rows.length === 0 ? (
+              <tr><td colSpan={5}><EmptyState icon="bi-calendar-range" title="Chưa có kỳ cập nhật" /></td></tr>
+            ) : rows.map((p) => (
               <tr key={p.id} className={!p.is_active ? 'text-muted' : ''}>
                 <td>{p.name}</td>
                 <td>{p.start_date}</td>
@@ -113,39 +117,34 @@ export default function PeriodsPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </DataTableCard>
 
       {modal && (
-        <div className="modal show d-block" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <form onSubmit={handleSubmit((d) => saveMut.mutate(d))}>
-                <div className="modal-header">
-                  <h5>Thêm kỳ cập nhật</h5>
-                  <button type="button" className="btn-close" onClick={() => setModal(null)}></button>
-                </div>
-                <div className="modal-body row g-3">
-                  <div className="col-12">
-                    <label className="form-label">Tên kỳ</label>
-                    <input className="form-control" placeholder="Kỳ 1/2026" {...register('name', { required: true })} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Ngày bắt đầu</label>
-                    <input type="date" className="form-control" {...register('start_date', { required: true })} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Ngày kết thúc</label>
-                    <input type="date" className="form-control" {...register('end_date', { required: true })} />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>Hủy</button>
-                  <button type="submit" className="btn btn-primary">Lưu</button>
-                </div>
-              </form>
+        <AppModal
+          title="Thêm kỳ cập nhật"
+          onClose={() => setModal(null)}
+          footer={
+            <>
+              <button type="button" className="btn btn-light" onClick={() => setModal(null)}>Hủy</button>
+              <button type="submit" form="period-form" className="btn btn-primary">Lưu</button>
+            </>
+          }
+        >
+          <form id="period-form" onSubmit={handleSubmit((d) => saveMut.mutate(d))} className="row g-3">
+            <div className="col-12">
+              <label className="form-label">Tên kỳ</label>
+              <input className="form-control" placeholder="Kỳ 1/2026" {...register('name', { required: true })} />
             </div>
-          </div>
-        </div>
+            <div className="col-md-6">
+              <label className="form-label">Ngày bắt đầu</label>
+              <input type="date" className="form-control" {...register('start_date', { required: true })} />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Ngày kết thúc</label>
+              <input type="date" className="form-control" {...register('end_date', { required: true })} />
+            </div>
+          </form>
+        </AppModal>
       )}
     </div>
   );

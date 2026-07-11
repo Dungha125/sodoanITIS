@@ -5,6 +5,9 @@ import { toast } from 'react-toastify';
 import { studentsApi, departmentsApi, periodsApi } from '../api';
 import PermissionGate from '../components/common/PermissionGate';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import PageHeader from '../components/common/PageHeader';
+import DataTableCard from '../components/common/DataTableCard';
+import EmptyState from '../components/common/EmptyState';
 import { usePermission } from '../hooks/usePermission';
 import { useAuth } from '../contexts/AuthContext';
 import { GENDERS } from '../utils/constants';
@@ -100,34 +103,35 @@ export default function StudentsPage() {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h4 className="mb-1">Đoàn viên</h4>
-          <p className="text-muted small mb-0">Tạo tài khoản (vai trò Đoàn viên, username = MSSV) trước khi thêm vào Chi đoàn.</p>
-        </div>
+      <PageHeader
+        title="Đoàn viên"
+        subtitle="Tạo tài khoản Đoàn viên (username = MSSV) trước, sau đó gán vào Chi đoàn."
+      >
         <PermissionGate permission="students.manage">
-          <button className="btn btn-danger btn-sm" onClick={() => { setModal({}); reset({ book_submitted: false, fee_submitted: false }); }}>
+          <button className="btn btn-primary" onClick={() => { setModal({}); reset({ book_submitted: false, fee_submitted: false }); }}>
             <i className="bi bi-plus-lg me-1"></i> Thêm đoàn viên
           </button>
         </PermissionGate>
-      </div>
+      </PageHeader>
 
       {isBiThu && !periodOpen && (
-        <div className="alert alert-warning py-2 small">Hiện không trong thời gian cập nhật trạng thái nộp sổ/phí.</div>
+        <div className="period-banner closed mb-3">
+          <i className="bi bi-clock-history"></i>
+          <span>Hiện không trong thời gian cập nhật trạng thái nộp sổ/phí.</span>
+        </div>
       )}
 
-      <div className="card border-0 shadow-sm">
-        <div className="card-header bg-transparent d-flex gap-2 flex-wrap">
-          <input className="form-control form-control-sm" style={{ maxWidth: 220 }} placeholder="Tìm MSSV, họ tên..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+      <DataTableCard>
+        <div className="filter-bar">
+          <input className="form-control form-control-sm" placeholder="Tìm MSSV, họ tên..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
           {!isBiThu && (
-            <select className="form-select form-select-sm" style={{ maxWidth: 200 }} value={deptFilter} onChange={(e) => { setDeptFilter(e.target.value); setPage(1); }}>
+            <select className="form-select form-select-sm" value={deptFilter} onChange={(e) => { setDeptFilter(e.target.value); setPage(1); }}>
               <option value="">Tất cả Chi đoàn</option>
               {(departments || []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           )}
         </div>
-        <div className="table-responsive">
-          <table className="table table-hover mb-0">
+        <table className="table table-hover mb-0">
             <thead className="table-light">
               <tr>
                 <th>MSSV</th><th>Họ tên</th><th>Giới tính</th><th>Chi đoàn</th>
@@ -135,6 +139,9 @@ export default function StudentsPage() {
               </tr>
             </thead>
             <tbody>
+              {(data?.items || []).length === 0 && (
+                <tr><td colSpan={7}><EmptyState icon="bi-people" title="Không tìm thấy đoàn viên" /></td></tr>
+              )}
               {(data?.items || []).map((s) => (
                 <tr key={s.id}>
                   <td><code>{s.mssv}</code></td>
@@ -175,10 +182,9 @@ export default function StudentsPage() {
               ))}
             </tbody>
           </table>
-        </div>
         {data && (
-          <div className="card-footer d-flex justify-content-between">
-            <span className="text-muted small">Tổng {data.total}</span>
+          <div className="data-card-footer d-flex justify-content-between align-items-center">
+            <span className="text-muted small">Tổng {data.total} đoàn viên</span>
             <div className="btn-group btn-group-sm">
               <button className="btn btn-outline-secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Trước</button>
               <span className="btn btn-outline-secondary disabled">{page}/{data.pages || 1}</span>
@@ -186,7 +192,7 @@ export default function StudentsPage() {
             </div>
           </div>
         )}
-      </div>
+      </DataTableCard>
 
       {confirmStatus && (
         <div className="modal show d-block" style={{ background: 'rgba(0,0,0,0.5)' }}>

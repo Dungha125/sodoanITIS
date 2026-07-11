@@ -3,25 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { dashboardApi, cohortsApi, departmentsApi, lienChiApi } from '../api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import SetupGuide from '../components/common/SetupGuide';
+import PageHeader from '../components/common/PageHeader';
+import StatCard from '../components/common/StatCard';
 import { useAuth } from '../contexts/AuthContext';
-
-function StatCard({ title, value, icon, color = 'primary', suffix = '' }) {
-  return (
-    <div className="col-md-4 col-6">
-      <div className="card border-0 shadow-sm h-100">
-        <div className="card-body d-flex align-items-center">
-          <div className={`rounded-circle stat-card-icon p-3 me-3 ${color !== 'primary' ? `bg-${color} bg-opacity-10` : ''}`}>
-            <i className={`bi ${icon} ${color === 'primary' ? '' : `text-${color}`} fs-4`}></i>
-          </div>
-          <div>
-            <div className="text-muted small">{title}</div>
-            <div className="fs-3 fw-bold">{value ?? 0}{suffix}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -56,21 +40,23 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h4 className="mb-1">Trang chủ</h4>
-      <p className="text-muted small mb-4">
-        {isBiThu ? `Chi đoàn: ${stats?.name || '—'}` : `Khóa: ${stats?.cohort_name || '—'}`}
-      </p>
+      <PageHeader
+        title={`Xin chào, ${user?.full_name?.split(' ').pop() || 'bạn'}`}
+        subtitle={isBiThu ? `Chi đoàn: ${stats?.name || '—'}` : `Khóa: ${stats?.cohort_name || '—'}`}
+      />
 
       {user?.role_code !== 'bi_thu' && (
         <SetupGuide cohorts={cohorts} departments={departments} lienChi={lienChi} />
       )}
 
       {period && (
-        <div className={`alert ${period.is_open ? 'alert-success' : 'alert-warning'} py-2 small`}>
-          <i className="bi bi-calendar-range me-1"></i>
-          {period.is_open
-            ? `Đang trong thời gian cập nhật: ${period.name} (${period.start_date} → ${period.end_date})`
-            : `Ngoài thời gian cập nhật. Kỳ: ${period.name} (${period.start_date} → ${period.end_date})`}
+        <div className={`period-banner ${period.is_open ? 'open' : 'closed'}`}>
+          <i className="bi bi-calendar-range"></i>
+          <span>
+            {period.is_open
+              ? `Đang mở cập nhật: ${period.name} (${period.start_date} → ${period.end_date})`
+              : `Ngoài kỳ cập nhật: ${period.name} (${period.start_date} → ${period.end_date})`}
+          </span>
         </div>
       )}
 
@@ -79,7 +65,7 @@ export default function DashboardPage() {
         <StatCard title="Đã nộp sổ" value={stats?.book_submitted} icon="bi-journal-check" color="success" />
         <StatCard title="Chưa nộp sổ" value={stats?.book_not_submitted} icon="bi-journal-x" color="warning" />
         <StatCard title="Đã nộp phí" value={stats?.fee_submitted} icon="bi-cash-coin" color="success" />
-        <StatCard title="Chưa nộp phí" value={stats?.fee_not_submitted} icon="bi-cash" color="secondary" />
+        <StatCard title="Chưa nộp phí" value={stats?.fee_not_submitted} icon="bi-cash-stack" color="secondary" />
         <StatCard
           title={isBiThu ? 'Hoàn thành nộp sổ' : 'Tỷ lệ hoàn thành'}
           value={isBiThu ? stats?.book_completion_rate : stats?.completion_rate}
@@ -96,10 +82,15 @@ export default function DashboardPage() {
       </div>
 
       {isBiThu && (
-        <div className="card border-0 shadow-sm">
-          <div className="card-body">
-            <p className="mb-2">Vào <strong>Đoàn viên</strong> để cập nhật trạng thái nộp sổ và nộp phí cho từng đoàn viên.</p>
-            <Link to="/students" className="btn btn-danger btn-sm">Quản lý đoàn viên</Link>
+        <div className="data-card card border-0 shadow-sm p-4">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+              <h6 className="fw-semibold mb-1">Cập nhật trạng thái đoàn viên</h6>
+              <p className="text-muted small mb-0">Đánh dấu nộp sổ / nộp phí cho từng đoàn viên trong Chi đoàn.</p>
+            </div>
+            <Link to="/students" className="btn btn-primary">
+              <i className="bi bi-people me-1"></i> Quản lý đoàn viên
+            </Link>
           </div>
         </div>
       )}
