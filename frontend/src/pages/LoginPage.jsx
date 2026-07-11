@@ -32,9 +32,9 @@ export default function LoginPage() {
             <div className="login-brand-badge">
               <i className="bi bi-shield-check"></i>
             </div>
-            <h1>Sổ Đoàn Điện tử</h1>
+            <h1>Quản lý sổ đoàn</h1>
             <p className="login-brand-desc">
-              Hệ thống quản lý nộp sổ đoàn và phí đoàn cho Liên chi Đoàn Khoa CNTT.
+              Hệ thống quản lý nộp sổ đoàn và phí đoàn cho Liên chi Đoàn Khoa CNTT1.
             </p>
             <ul className="login-features">
               <li><i className="bi bi-check-circle-fill"></i> Theo dõi tiến độ theo Chi đoàn</li>

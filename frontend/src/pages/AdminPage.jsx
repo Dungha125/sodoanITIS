@@ -18,6 +18,8 @@ const ROLE_LABELS = {
 };
 
 export default function AdminPage() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role_code === 'super_admin';
   const qc = useQueryClient();
   const [tab, setTab] = useState('users');
   const [modal, setModal] = useState(null);
@@ -213,7 +215,8 @@ export default function AdminPage() {
                   {!modal.id && (
                     <div className="col-md-6">
                       <label className="form-label">Tài khoản</label>
-                      <input className="form-control" {...register('username', { required: true })} />
+                      <input className="form-control" {...register('username', { required: true })} placeholder="MSSV (vd: 2254800001)" />
+                      <p className="form-text small">Với vai trò Đoàn viên: username = MSSV, chưa cần chọn Chi đoàn.</p>
                     </div>
                   )}
                   <div className={modal.id ? 'col-md-12' : 'col-md-6'}>

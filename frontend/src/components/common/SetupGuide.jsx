@@ -7,16 +7,17 @@ const STEPS_ADMIN = [
   { n: 2, title: 'Tạo tài khoản', path: '/admin', perm: 'users.manage', icon: 'bi-shield-lock' },
   { n: 3, title: 'Tạo Khóa', path: '/cohorts', perm: 'cohorts.manage', icon: 'bi-mortarboard' },
   { n: 4, title: 'Tạo Chi đoàn', path: '/departments', perm: 'departments.manage', icon: 'bi-people-fill' },
-  { n: 5, title: 'Kỳ cập nhật', path: '/periods', perm: 'periods.manage', icon: 'bi-calendar-range' },
-  { n: 6, title: 'Import đoàn viên', path: '/departments', perm: 'departments.manage', icon: 'bi-upload' },
+  { n: 5, title: 'Tài khoản Đoàn viên', path: '/admin', perm: 'users.manage', icon: 'bi-person-plus' },
+  { n: 6, title: 'Thêm vào Chi đoàn', path: '/departments', perm: 'departments.manage', icon: 'bi-upload' },
 ];
 
 const STEPS_LIEN_CHI = [
   { n: 1, title: 'Tạo Khóa', path: '/cohorts', perm: 'cohorts.manage', icon: 'bi-mortarboard' },
   { n: 2, title: 'Tạo Chi đoàn', path: '/departments', perm: 'departments.manage', icon: 'bi-people-fill' },
   { n: 3, title: 'Kỳ cập nhật', path: '/periods', perm: 'periods.manage', icon: 'bi-calendar-range' },
-  { n: 4, title: 'Tạo tài khoản Bí thư', path: '/admin', perm: 'users.manage', icon: 'bi-person-plus' },
-  { n: 5, title: 'Import đoàn viên', path: '/departments', perm: 'departments.manage', icon: 'bi-upload' },
+  { n: 4, title: 'Tài khoản Bí thư', path: '/admin', perm: 'users.manage', icon: 'bi-person-plus' },
+  { n: 5, title: 'Tài khoản Đoàn viên', path: '/admin', perm: 'users.manage', icon: 'bi-people' },
+  { n: 6, title: 'Thêm vào Chi đoàn', path: '/departments', perm: 'departments.manage', icon: 'bi-upload' },
 ];
 
 export default function SetupGuide({ cohorts, departments, lienChi }) {
@@ -53,7 +54,7 @@ export default function SetupGuide({ cohorts, departments, lienChi }) {
           <p className="small text-warning mb-0 mt-2"><i className="bi bi-exclamation-triangle me-1"></i>Chưa có Khóa — tạo khóa trước khi thêm Chi đoàn.</p>
         )}
         {hasCohort && !hasDept && (
-          <p className="small text-warning mb-0 mt-2"><i className="bi bi-exclamation-triangle me-1"></i>Chưa có Chi đoàn — tạo chi đoàn và import đoàn viên.</p>
+          <p className="small text-warning mb-0 mt-2"><i className="bi bi-exclamation-triangle me-1"></i>Chưa có Chi đoàn — tạo Chi đoàn, tạo tài khoản Đoàn viên, rồi thêm vào Chi đoàn.</p>
         )}
       </div>
     </div>

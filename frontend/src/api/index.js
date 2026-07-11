@@ -34,6 +34,7 @@ export const periodsApi = {
 
 export const studentsApi = {
   list: (params) => api.get('/students', { params }),
+  availableAccounts: () => api.get('/students/available-accounts'),
   get: (id) => api.get(`/students/${id}`),
   create: (data) => api.post('/students', data),
   update: (id, data) => api.put(`/students/${id}`, data),
@@ -55,6 +56,7 @@ export const departmentsApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  addMember: (deptId, mssv) => api.post(`/departments/${deptId}/members`, { mssv }),
 };
 
 export const lienChiApi = {

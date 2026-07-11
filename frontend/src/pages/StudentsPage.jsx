@@ -32,6 +32,12 @@ export default function StudentsPage() {
     queryFn: () => periodsApi.active().then((r) => r.data),
   });
 
+  const { data: availableAccounts } = useQuery({
+    queryKey: ['available-accounts'],
+    queryFn: () => studentsApi.availableAccounts().then((r) => r.data),
+    enabled: !!modal && !modal.id,
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ['students', page, search, deptFilter],
     queryFn: () => studentsApi.list({
@@ -47,7 +53,10 @@ export default function StudentsPage() {
     onSuccess: () => {
       toast.success(modal?.id ? 'Cập nhật thành công' : 'Thêm đoàn viên thành công');
       qc.invalidateQueries(['students']);
+      qc.invalidateQueries(['students-dept']);
       qc.invalidateQueries(['dashboard-stats']);
+      qc.invalidateQueries(['departments']);
+      qc.invalidateQueries(['available-accounts']);
       setModal(null);
       reset();
     },
@@ -92,7 +101,10 @@ export default function StudentsPage() {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h4>Đoàn viên</h4>
+        <div>
+          <h4 className="mb-1">Đoàn viên</h4>
+          <p className="text-muted small mb-0">Tạo tài khoản (vai trò Đoàn viên, username = MSSV) trước khi thêm vào Chi đoàn.</p>
+        </div>
         <PermissionGate permission="students.manage">
           <button className="btn btn-danger btn-sm" onClick={() => { setModal({}); reset({ book_submitted: false, fee_submitted: false }); }}>
             <i className="bi bi-plus-lg me-1"></i> Thêm đoàn viên
@@ -235,26 +247,65 @@ export default function StudentsPage() {
                 </div>
                 <div className="modal-body row g-3">
                   {!modal.id && (
-                    <div className="col-md-4">
-                      <label className="form-label">MSSV *</label>
-                      <input className="form-control" {...register('mssv', { required: true })} />
-                    </div>
+                    <>
+                      <div className="col-12">
+                        <label className="form-label">Tài khoản đoàn viên (MSSV) *</label>
+                        <select
+                          className="form-select"
+                          {...register('mssv', { required: true })}
+                          onChange={(e) => {
+                            const acc = (availableAccounts || []).find((a) => a.mssv === e.target.value);
+                            if (acc) {
+                              setValue('full_name', acc.full_name);
+                              setValue('phone', acc.phone || '');
+                            }
+                          }}
+                        >
+                          <option value="">Chọn tài khoản</option>
+                          {(availableAccounts || []).map((a) => (
+                            <option key={a.mssv} value={a.mssv}>{a.mssv} — {a.full_name}</option>
+                          ))}
+                        </select>
+                        {!(availableAccounts || []).length && (
+                          <p className="form-text small text-warning">Chưa có tài khoản Đoàn viên khả dụng. Tạo ở menu Tài khoản.</p>
+                        )}
+                      </div>
+                    </>
                   )}
-                  <div className="col-md-8">
+                  <div className={modal.id ? 'col-md-8' : 'col-md-12'}>
                     <label className="form-label">Họ tên *</label>
                     <input className="form-control" {...register('full_name', { required: true })} />
                   </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Chi đoàn *</label>
-                    <select className="form-select" {...register('department_id', { required: true })}>
-                      <option value="">Chọn</option>
-                      {(departments || []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Ngày sinh</label>
-                    <input type="date" className="form-control" {...register('date_of_birth')} />
-                  </div>
+                  {!modal.id && (
+                    <div className="col-md-6">
+                      <label className="form-label">Chi đoàn *</label>
+                      <select className="form-select" {...register('department_id', { required: true })}>
+                        <option value="">Chọn</option>
+                        {(departments || []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {modal.id && (
+                    <div className="col-md-4">
+                      <label className="form-label">Chi đoàn *</label>
+                      <select className="form-select" {...register('department_id', { required: true })}>
+                        <option value="">Chọn</option>
+                        {(departments || []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {!modal.id && (
+                    <div className="col-md-6">
+                      <label className="form-label">Ngày sinh</label>
+                      <input type="date" className="form-control" {...register('date_of_birth')} />
+                    </div>
+                  )}
+                  {modal.id && (
+                    <div className="col-md-4">
+                      <label className="form-label">Ngày sinh</label>
+                      <input type="date" className="form-control" {...register('date_of_birth')} />
+                    </div>
+                  )}
                   <div className="col-md-4">
                     <label className="form-label">Giới tính</label>
                     <select className="form-select" {...register('gender')}>

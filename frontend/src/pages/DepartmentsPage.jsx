@@ -13,6 +13,8 @@ export default function DepartmentsPage() {
   const [modal, setModal] = useState(null);
   const [detail, setDetail] = useState(null);
   const [importDept, setImportDept] = useState(null);
+  const [addMemberDept, setAddMemberDept] = useState(null);
+  const [selectedMssv, setSelectedMssv] = useState('');
   const { register, handleSubmit, reset, setValue } = useForm();
 
   const { data: cohorts } = useQuery({
@@ -37,10 +39,16 @@ export default function DepartmentsPage() {
     enabled: !!detail,
   });
 
-  const { data: deptStudents } = useQuery({
+  const { data: deptStudents, isLoading: loadingStudents, isError: studentsError } = useQuery({
     queryKey: ['students-dept', detail],
-    queryFn: () => studentsApi.list({ department_id: detail, size: 100 }).then((r) => r.data),
+    queryFn: () => studentsApi.list({ department_id: detail, size: 200 }).then((r) => r.data),
     enabled: !!detail,
+  });
+
+  const { data: availableAccounts } = useQuery({
+    queryKey: ['available-accounts'],
+    queryFn: () => studentsApi.availableAccounts().then((r) => r.data),
+    enabled: !!addMemberDept,
   });
 
   const saveMut = useMutation({
@@ -61,10 +69,28 @@ export default function DepartmentsPage() {
     onSuccess: (r) => {
       toast.success(`Import: ${r.data.imported} thành công, ${r.data.skipped} bỏ qua`);
       qc.invalidateQueries(['students']);
+      qc.invalidateQueries(['students-dept']);
       qc.invalidateQueries(['department-detail']);
+      qc.invalidateQueries(['departments']);
+      qc.invalidateQueries(['available-accounts']);
       setImportDept(null);
     },
     onError: (e) => toast.error(e.response?.data?.detail || 'Lỗi import'),
+  });
+
+  const addMemberMut = useMutation({
+    mutationFn: ({ deptId, mssv }) => departmentsApi.addMember(deptId, mssv),
+    onSuccess: () => {
+      toast.success('Đã thêm đoàn viên vào Chi đoàn');
+      qc.invalidateQueries(['students']);
+      qc.invalidateQueries(['students-dept']);
+      qc.invalidateQueries(['department-detail']);
+      qc.invalidateQueries(['departments']);
+      qc.invalidateQueries(['available-accounts']);
+      setAddMemberDept(null);
+      setSelectedMssv('');
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Không thể thêm đoàn viên'),
   });
 
   const openEdit = (d) => {
@@ -95,17 +121,28 @@ export default function DepartmentsPage() {
               <div className="col-md-3"><div className="card border-0 shadow-sm p-3 text-center"><div className="text-muted small">Hoàn thành</div><div className="fs-4 fw-bold">{d?.completion_rate}%</div></div></div>
             </div>
             <div className="card border-0 shadow-sm">
-              <div className="card-header bg-transparent d-flex justify-content-between">
-                <strong>Danh sách đoàn viên</strong>
-                <button className="btn btn-sm btn-outline-primary" onClick={() => setImportDept(detail)}>
-                  <i className="bi bi-upload me-1"></i> Import Excel
-                </button>
+              <div className="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <strong>Danh sách đoàn viên ({deptStudents?.total ?? 0})</strong>
+                <div className="d-flex gap-2">
+                  <button className="btn btn-sm btn-primary" onClick={() => setAddMemberDept(detail)}>
+                    <i className="bi bi-person-plus me-1"></i> Thêm từ tài khoản
+                  </button>
+                  <button className="btn btn-sm btn-outline-primary" onClick={() => setImportDept(detail)}>
+                    <i className="bi bi-upload me-1"></i> Import Excel
+                  </button>
+                </div>
               </div>
+              {loadingStudents ? <LoadingSpinner /> : studentsError ? (
+                <div className="alert alert-danger m-3 mb-0">Không tải được danh sách đoàn viên.</div>
+              ) : (
               <table className="table table-hover mb-0">
                 <thead className="table-light">
                   <tr><th>MSSV</th><th>Họ tên</th><th>Giới tính</th><th>Ngày sinh</th><th>SĐT</th><th>Nộp sổ</th><th>Nộp phí</th></tr>
                 </thead>
                 <tbody>
+                  {(deptStudents?.items || []).length === 0 && (
+                    <tr><td colSpan={7} className="text-center text-muted py-4">Chưa có đoàn viên. Tạo tài khoản (vai trò Đoàn viên) trước, sau đó thêm vào Chi đoàn.</td></tr>
+                  )}
                   {(deptStudents?.items || []).map((s) => (
                     <tr key={s.id}>
                       <td><code>{s.mssv}</code></td>
@@ -119,6 +156,7 @@ export default function DepartmentsPage() {
                   ))}
                 </tbody>
               </table>
+              )}
             </div>
           </>
         )}
@@ -129,6 +167,7 @@ export default function DepartmentsPage() {
                 <div className="modal-header"><h5>Import đoàn viên (Excel)</h5><button className="btn-close" onClick={() => setImportDept(null)}></button></div>
                 <div className="modal-body">
                   <p className="small text-muted">Cột: MSSV | Họ tên | Ngày sinh | Giới tính | SĐT</p>
+                  <p className="small text-warning"><i className="bi bi-exclamation-triangle me-1"></i>MSSV phải đã có tài khoản (vai trò Đoàn viên) trước khi import.</p>
                   <input type="file" className="form-control" accept=".xlsx,.xls" ref={fileRef} />
                 </div>
                 <div className="modal-footer">
@@ -138,6 +177,41 @@ export default function DepartmentsPage() {
                     if (!file) return toast.error('Chọn file Excel');
                     importMut.mutate({ deptId: importDept, file });
                   }}>Import</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {addMemberDept && (
+          <div className="modal show d-block" style={{ background: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5>Thêm đoàn viên từ tài khoản</h5>
+                  <button className="btn-close" onClick={() => { setAddMemberDept(null); setSelectedMssv(''); }}></button>
+                </div>
+                <div className="modal-body">
+                  <p className="small text-muted mb-3">Chỉ hiện tài khoản vai trò <strong>Đoàn viên</strong> chưa thuộc Chi đoàn nào.</p>
+                  <label className="form-label">Chọn MSSV</label>
+                  <select className="form-select" value={selectedMssv} onChange={(e) => setSelectedMssv(e.target.value)}>
+                    <option value="">— Chọn đoàn viên —</option>
+                    {(availableAccounts || []).map((a) => (
+                      <option key={a.mssv} value={a.mssv}>{a.mssv} — {a.full_name}</option>
+                    ))}
+                  </select>
+                  {!(availableAccounts || []).length && (
+                    <p className="small text-warning mt-2 mb-0">Không có tài khoản khả dụng. Tạo tài khoản Đoàn viên ở menu Tài khoản trước.</p>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => { setAddMemberDept(null); setSelectedMssv(''); }}>Hủy</button>
+                  <button
+                    className="btn btn-primary"
+                    disabled={!selectedMssv || addMemberMut.isPending}
+                    onClick={() => addMemberMut.mutate({ deptId: addMemberDept, mssv: selectedMssv })}
+                  >
+                    Thêm vào Chi đoàn
+                  </button>
                 </div>
               </div>
             </div>
