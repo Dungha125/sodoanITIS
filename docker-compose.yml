@@ -1,51 +1,98 @@
-services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: so_doan
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    # Không expose port ra ngoài — chỉ backend kết nối nội bộ
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/so_doan
-      SECRET_KEY: so-doan-dev-secret-change-in-production
-      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
-      RATE_LIMIT_MAX_REQUESTS: 10
-      RATE_LIMIT_WINDOW_SECONDS: 1
-      SECURITY_WHITELIST_IPS: 127.0.0.1,::1
-    volumes:
-      - ./backend:/app
-      - ./storage:/app/storage
-    depends_on:
-      db:
-        condition: service_healthy
-    command: >
-      sh -c "python scripts/seed_data.py &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "5173:5173"
-    environment:
-      VITE_API_URL: http://localhost:8000/api/v1
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-
-volumes:
-  pgdata:
+services:
+
+  db:
+
+    image: postgres:16-alpine
+
+    environment:
+
+      POSTGRES_USER: postgres
+
+      POSTGRES_PASSWORD: postgres
+
+      POSTGRES_DB: so_doan
+
+    volumes:
+
+      - pgdata:/var/lib/postgresql/data
+
+    # Không expose port ra ngoài — chỉ backend kết nối nội bộ
+
+    healthcheck:
+
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+
+      interval: 5s
+
+      timeout: 5s
+
+      retries: 5
+
+
+
+  backend:
+
+    build: ./backend
+
+    ports:
+
+      - "8000:8000"
+
+    environment:
+
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/so_doan
+
+      SECRET_KEY: so-doan-dev-secret-change-in-production
+
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+
+      RATE_LIMIT_MAX_REQUESTS: 20
+
+      RATE_LIMIT_WINDOW_SECONDS: 0.1
+
+      SECURITY_WHITELIST_IPS: 127.0.0.1,::1
+
+    volumes:
+
+      - ./backend:/app
+
+      - ./storage:/app/storage
+
+    depends_on:
+
+      db:
+
+        condition: service_healthy
+
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+
+
+  frontend:
+
+    build: ./frontend
+
+    ports:
+
+      - "5173:5173"
+
+    environment:
+
+      VITE_API_URL: http://localhost:8000/api/v1
+
+    volumes:
+
+      - ./frontend:/app
+
+      - /app/node_modules
+
+    depends_on:
+
+      - backend
+
+
+
+volumes:
+
+  pgdata:
+

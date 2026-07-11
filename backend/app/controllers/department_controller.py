@@ -10,6 +10,7 @@ from app.schemas.organization import (
     LienChiCreate, LienChiUpdate, LienChiResponse,
     DepartmentCreate, DepartmentUpdate, DepartmentResponse, DepartmentDetailResponse,
 )
+from app.schemas.student import StudentResponse, AddDepartmentMemberRequest
 from app.services.organization_service import OrganizationService
 from app.services.student_service import StudentService
 
@@ -73,6 +74,16 @@ async def import_students(
     user=Depends(require_permission("students.import")),
 ):
     return await StudentService(db).import_excel(dept_id, file, user)
+
+
+@router.post("/departments/{dept_id}/members", response_model=StudentResponse)
+def add_department_member(
+    dept_id: int,
+    data: AddDepartmentMemberRequest,
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("students.manage")),
+):
+    return StudentService(db).add_to_department(dept_id, data.mssv, user.id, user)
 
 
 @router.get("/lien-chi", response_model=list[LienChiResponse])

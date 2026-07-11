@@ -45,6 +45,17 @@ class StudentStatusUpdate(BaseModel):
     fee_submitted: bool | None = None
 
 
+class AvailableStudentAccount(BaseModel):
+    mssv: str
+    full_name: str
+    email: str
+    phone: str | None = None
+
+
+class AddDepartmentMemberRequest(BaseModel):
+    mssv: str
+
+
 class StudentResponse(StudentBase):
     id: int
     created_at: datetime

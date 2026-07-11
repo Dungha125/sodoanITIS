@@ -14,16 +14,23 @@ class CohortService:
         self.db = db
         self.audit_repo = AuditRepository(db)
 
-    def list_cohorts(self, admin: bool = False) -> list[CohortResponse]:
+    def list_cohorts(self, include_inactive: bool = False) -> list[CohortResponse]:
         query = self.db.query(Cohort).order_by(Cohort.name.desc())
-        if not admin:
+        if not include_inactive:
             query = query.filter(Cohort.is_active == True)
         return [self._to_response(c) for c in query.all()]
 
     def create(self, data: CohortCreate, actor_id: int) -> CohortResponse:
         name = data.name.upper()
-        if self.db.query(Cohort).filter(Cohort.name == name).first():
-            raise HTTPException(status_code=409, detail="Khóa đã tồn tại")
+        existing = self.db.query(Cohort).filter(Cohort.name == name).first()
+        if existing:
+            if existing.is_active:
+                raise HTTPException(status_code=409, detail="Khóa đã tồn tại")
+            existing.is_active = True
+            self.audit_repo.log(actor_id, "RESTORE_COHORT", "cohort", existing.id, new_value={"name": name})
+            self.db.commit()
+            return self._to_response(existing)
+
         cohort = Cohort(name=name)
         self.db.add(cohort)
         self.db.flush()
@@ -34,8 +41,11 @@ class CohortService:
     def update(self, cohort_id: int, data: CohortUpdate, actor_id: int) -> CohortResponse:
         cohort = self._get(cohort_id)
         if data.name and data.name.upper() != cohort.name:
-            if self.db.query(Cohort).filter(Cohort.name == data.name.upper()).first():
+            dup = self.db.query(Cohort).filter(Cohort.name == data.name.upper(), Cohort.id != cohort_id).first()
+            if dup and dup.is_active:
                 raise HTTPException(status_code=409, detail="Khóa đã tồn tại")
+            if dup and not dup.is_active:
+                raise HTTPException(status_code=409, detail="Tên khóa đang bị vô hiệu hóa — hãy khôi phục khóa đó")
             cohort.name = data.name.upper()
         if data.is_active is not None:
             cohort.is_active = data.is_active
@@ -43,11 +53,22 @@ class CohortService:
         self.db.commit()
         return self._to_response(cohort)
 
+    def restore(self, cohort_id: int, actor_id: int) -> CohortResponse:
+        cohort = self._get(cohort_id)
+        if cohort.is_active:
+            raise HTTPException(status_code=400, detail="Khóa đang hoạt động")
+        cohort.is_active = True
+        self.audit_repo.log(actor_id, "RESTORE_COHORT", "cohort", cohort.id)
+        self.db.commit()
+        return self._to_response(cohort)
+
     def delete(self, cohort_id: int, actor_id: int):
         cohort = self._get(cohort_id)
-        dept_count = self.db.query(Department).filter(Department.cohort_id == cohort_id, Department.is_active == True).count()
+        dept_count = self.db.query(Department).filter(
+            Department.cohort_id == cohort_id, Department.is_active == True
+        ).count()
         if dept_count > 0:
-            raise HTTPException(status_code=400, detail="Không thể xóa khóa còn Chi đoàn hoạt động")
+            raise HTTPException(status_code=400, detail="Không thể vô hiệu hóa khóa còn Chi đoàn hoạt động")
         cohort.is_active = False
         self.audit_repo.log(actor_id, "DEACTIVATE_COHORT", "cohort", cohort.id)
         self.db.commit()

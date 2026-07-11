@@ -4,10 +4,18 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.permissions.dependencies import require_permission
-from app.schemas.student import StudentCreate, StudentUpdate, StudentResponse, StudentStatusUpdate
+from app.schemas.student import (
+    StudentCreate, StudentUpdate, StudentResponse, StudentStatusUpdate,
+    AvailableStudentAccount, AddDepartmentMemberRequest,
+)
 from app.services.student_service import StudentService
 
 router = APIRouter(prefix="/students", tags=["Students"])
+
+
+@router.get("/available-accounts", response_model=list[AvailableStudentAccount])
+def list_available_accounts(db: Session = Depends(get_db), user=Depends(require_permission("students.manage"))):
+    return StudentService(db).list_available_accounts(user)
 
 
 @router.get("")

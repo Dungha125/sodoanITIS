@@ -2,8 +2,10 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.permissions.roles import ROLE_SUPER_ADMIN
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import LoginRequest, LoginResponse, UserResponse
+from app.services.security_service import SecurityService
 from app.utils.security import verify_password, create_access_token, create_refresh_token, decode_token
 
 
@@ -12,14 +14,16 @@ class AuthService:
         self.user_repo = UserRepository(db)
         self.db = db
 
-    def login(self, data: LoginRequest) -> LoginResponse:
+    def login(self, data: LoginRequest, client_ip: str | None = None) -> LoginResponse:
         user = self.user_repo.get_by_username(data.username)
         if not user or not verify_password(data.password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={"error_code": "INVALID_CREDENTIALS", "message": "Sai tài khoản hoặc mật khẩu"},
             )
-        token_data = {"sub": str(user.id)}
+        if user.role.code == ROLE_SUPER_ADMIN and client_ip:
+            SecurityService(self.db).remove_from_blacklist(client_ip)
+        token_data = {"sub": str(user.id), "role": user.role.code}
         return LoginResponse(
             access_token=create_access_token(token_data),
             refresh_token=create_refresh_token(token_data),
@@ -33,7 +37,7 @@ class AuthService:
         user = self.user_repo.get_with_relations(int(payload["sub"]))
         if not user:
             raise HTTPException(status_code=401, detail="Người dùng không tồn tại")
-        token_data = {"sub": str(user.id)}
+        token_data = {"sub": str(user.id), "role": user.role.code}
         return {
             "access_token": create_access_token(token_data),
             "refresh_token": create_refresh_token(token_data),

@@ -7,11 +7,11 @@ from openpyxl import load_workbook
 from sqlalchemy.orm import Session
 
 from app.models.student import Student, ClassRoom, Department
-from app.models.user import User
+from app.models.user import User, Role
 from app.repositories.student_repository import StudentRepository
 from app.repositories.audit_repository import AuditRepository
 from app.permissions.scoping import assert_department_access, assert_student_access, resolve_department_filter
-from app.permissions.roles import ROLE_BI_THU, ROLE_LIEN_CHI_DOAN, ROLE_SUPER_ADMIN
+from app.permissions.roles import ROLE_BI_THU, ROLE_LIEN_CHI_DOAN, ROLE_SUPER_ADMIN, ROLE_DOAN_VIEN
 from app.schemas.student import StudentCreate, StudentUpdate, StudentResponse, StudentStatusUpdate
 from app.services.period_service import CollectionPeriodService
 
@@ -28,17 +28,57 @@ class StudentService:
         if not skip_scope_check and user:
             assert_department_access(user, self.db, data.department_id)
         if self.repo.get_by_mssv(data.mssv):
-            raise HTTPException(status_code=409, detail="MSSV đã tồn tại")
+            raise HTTPException(status_code=409, detail="Đoàn viên đã thuộc một Chi đoàn")
+        account = self._require_doan_vien_account(data.mssv)
         self._validate_class_department(data.class_id, data.department_id)
         payload = data.model_dump()
         payload["cohort"] = payload.get("cohort") or self._cohort_name(data.department_id)
         payload["gender"] = self._normalize_gender(payload.get("gender"))
+        payload["full_name"] = payload.get("full_name") or account.full_name
+        payload["email"] = payload.get("email") or account.email
+        payload["phone"] = payload.get("phone") or account.phone
         student = Student(**payload)
         self.repo.create(student)
+        account.department_id = data.department_id
         self.audit_repo.log(actor_id, "CREATE_STUDENT", "student", student.id, new_value={"mssv": data.mssv})
         self.repo.commit()
         student = self.repo.get_by_id(student.id)
         return self._to_response(student)
+
+    def add_to_department(self, department_id: int, mssv: str, actor_id: int, user: User) -> StudentResponse:
+        assert_department_access(user, self.db, department_id)
+        mssv = mssv.strip()
+        if self.repo.get_by_mssv(mssv):
+            raise HTTPException(status_code=409, detail="Đoàn viên đã thuộc một Chi đoàn")
+        account = self._require_doan_vien_account(mssv)
+        cohort_name = self._cohort_name(department_id)
+        student = Student(
+            mssv=mssv,
+            full_name=account.full_name,
+            email=account.email,
+            phone=account.phone,
+            department_id=department_id,
+            cohort=cohort_name,
+        )
+        self.repo.create(student)
+        account.department_id = department_id
+        self.audit_repo.log(actor_id, "ADD_STUDENT_TO_DEPT", "student", student.id, new_value={"mssv": mssv, "department_id": department_id})
+        self.repo.commit()
+        return self._to_response(self.repo.get_by_id(student.id))
+
+    def list_available_accounts(self, user: User) -> list[dict]:
+        existing = {row[0] for row in self.db.query(Student.mssv).all()}
+        users = (
+            self.db.query(User)
+            .join(Role)
+            .filter(User.is_active == True, Role.code == ROLE_DOAN_VIEN)
+            .order_by(User.username)
+            .all()
+        )
+        return [
+            {"mssv": u.username, "full_name": u.full_name, "email": u.email, "phone": u.phone}
+            for u in users if u.username not in existing
+        ]
 
     def update(self, student_id: int, data: StudentUpdate, actor_id: int, user: User) -> StudentResponse:
         student = self.repo.get_by_id(student_id)
@@ -144,6 +184,12 @@ class StudentService:
             if self.repo.get_by_mssv(mssv):
                 skipped += 1
                 continue
+            try:
+                self._require_doan_vien_account(mssv)
+            except HTTPException:
+                errors.append(f"Dòng {idx}: MSSV {mssv} chưa có tài khoản đoàn viên")
+                skipped += 1
+                continue
 
             dob = None
             if isinstance(dob_raw, date):
@@ -169,6 +215,20 @@ class StudentService:
                 skipped += 1
 
         return {"imported": imported, "skipped": skipped, "errors": errors[:20]}
+
+    def _require_doan_vien_account(self, mssv: str) -> User:
+        account = (
+            self.db.query(User)
+            .join(Role)
+            .filter(User.username == mssv.strip(), User.is_active == True, Role.code == ROLE_DOAN_VIEN)
+            .first()
+        )
+        if not account:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Chưa có tài khoản đoàn viên cho MSSV {mssv}. Tạo tài khoản (vai trò Đoàn viên) trước.",
+            )
+        return account
 
     def _validate_class_department(self, class_id: int | None, department_id: int):
         if not class_id:

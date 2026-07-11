@@ -85,6 +85,18 @@ class SecurityService:
         self.db.commit()
         return True
 
+    def clear_all_blacklist(self) -> int:
+        """Gỡ toàn bộ IP đang bị chặn (dùng khi admin bị blacklist nhầm)."""
+        rows = self.db.query(IpBlacklist).filter(IpBlacklist.is_active == True).all()
+        count = len(rows)
+        for row in rows:
+            row.is_active = False
+        with self._lock:
+            self._blacklist_cache.clear()
+            self._request_log.clear()
+        self.db.commit()
+        return count
+
     def log_event(self, ip: str, event_type: str, path: str | None = None,
                   user_agent: str | None = None, detail: str | None = None):
         event = SecurityEvent(

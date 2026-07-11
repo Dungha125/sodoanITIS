@@ -1,105 +1,47 @@
+# Chỉ deploy Backend + Database lên VPS
+# Frontend đã host trên Vercel: https://sodoan.lcdkhoacntt1.com
+
 services:
-
   db:
-
     image: postgres:16-alpine
-
     environment:
-
       POSTGRES_USER: postgres
-
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-
       POSTGRES_DB: so_doan
-
     volumes:
-
       - pgdata:/var/lib/postgresql/data
-
       - ./postgres/init-security.sql:/docker-entrypoint-initdb.d/01-security.sql:ro
-
     restart: always
-
-    # Database KHÔNG expose port — chỉ kết nối nội bộ Docker network
-
     healthcheck:
-
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-
       interval: 5s
-
       timeout: 5s
-
       retries: 5
 
-
-
   backend:
-
     build:
-
       context: ./backend
-
       dockerfile: Dockerfile.prod
-
     environment:
-
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@db:5432/so_doan
-
       SECRET_KEY: ${SECRET_KEY}
-
       DEBUG: "false"
-
-      CORS_ORIGINS: https://sodoan.lcdkhoacntt1.com,http://sodoan.lcdkhoacntt1.com
-
+      CORS_ORIGINS: https://sodoan.lcdkhoacntt1.com,https://www.sodoan.lcdkhoacntt1.com
+      ALLOWED_HOSTS: api.sodoan.lcdkhoacntt1.com,sodoan.lcdkhoacntt1.com,localhost,127.0.0.1,backend
       RATE_LIMIT_MAX_REQUESTS: 20
-
       RATE_LIMIT_WINDOW_SECONDS: 0.1
-
       SECURITY_WHITELIST_IPS: 127.0.0.1,::1
-
     volumes:
-
       - ./storage:/app/storage
-
+    ports:
+      # HOST:CONTAINER — uvicorn lắng nghe port 8000 trong container
+      - "127.0.0.1:8001:8000"
     depends_on:
-
       db:
-
         condition: service_healthy
-
     restart: always
-
     command: >
       uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips='*'
 
-
-
-  frontend:
-
-    build:
-
-      context: ./frontend
-
-      dockerfile: Dockerfile.prod
-
-      args:
-
-        VITE_API_URL: https://sodoan.lcdkhoacntt1.com/api/v1
-
-    ports:
-
-      - "80:80"
-
-    depends_on:
-
-      - backend
-
-    restart: always
-
-
-
 volumes:
-
   pgdata:
-

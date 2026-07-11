@@ -1,5 +1,5 @@
 """Cohort controller."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -11,8 +11,18 @@ router = APIRouter(prefix="/cohorts", tags=["Cohorts"])
 
 
 @router.get("", response_model=list[CohortResponse])
-def list_cohorts(db: Session = Depends(get_db), _=Depends(require_permission("dashboard"))):
-    return CohortService(db).list_cohorts()
+def list_cohorts(
+    include_inactive: bool = Query(False),
+    db: Session = Depends(get_db),
+    user=Depends(require_permission("dashboard")),
+):
+    inactive = include_inactive and user.role.code in ("super_admin", "lien_chi_doan")
+    return CohortService(db).list_cohorts(include_inactive=inactive)
+
+
+@router.get("/manage", response_model=list[CohortResponse])
+def list_cohorts_manage(db: Session = Depends(get_db), _=Depends(require_permission("cohorts.manage"))):
+    return CohortService(db).list_cohorts(include_inactive=True)
 
 
 @router.post("", response_model=CohortResponse)
@@ -23,6 +33,11 @@ def create_cohort(data: CohortCreate, db: Session = Depends(get_db), user=Depend
 @router.put("/{cohort_id}", response_model=CohortResponse)
 def update_cohort(cohort_id: int, data: CohortUpdate, db: Session = Depends(get_db), user=Depends(require_permission("cohorts.manage"))):
     return CohortService(db).update(cohort_id, data, user.id)
+
+
+@router.post("/{cohort_id}/restore", response_model=CohortResponse)
+def restore_cohort(cohort_id: int, db: Session = Depends(get_db), user=Depends(require_permission("cohorts.manage"))):
+    return CohortService(db).restore(cohort_id, user.id)
 
 
 @router.delete("/{cohort_id}")

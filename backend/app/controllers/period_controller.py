@@ -34,3 +34,8 @@ def update_period(period_id: int, data: CollectionPeriodUpdate, db: Session = De
 def delete_period(period_id: int, db: Session = Depends(get_db), user=Depends(require_permission("periods.manage"))):
     CollectionPeriodService(db).delete(period_id, user.id)
     return {"message": "Đã vô hiệu hóa khoảng thời gian"}
+
+
+@router.post("/{period_id}/restore", response_model=CollectionPeriodResponse)
+def restore_period(period_id: int, db: Session = Depends(get_db), user=Depends(require_permission("periods.manage"))):
+    return CollectionPeriodService(db).restore(period_id, user.id)

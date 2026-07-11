@@ -61,6 +61,15 @@ class CollectionPeriodService:
         self.audit_repo.log(actor_id, "DEACTIVATE_PERIOD", "collection_period", period.id)
         self.db.commit()
 
+    def restore(self, period_id: int, actor_id: int) -> CollectionPeriodResponse:
+        period = self._get(period_id)
+        if period.is_active:
+            raise HTTPException(status_code=400, detail="Kỳ đang hoạt động")
+        period.is_active = True
+        self.audit_repo.log(actor_id, "RESTORE_PERIOD", "collection_period", period.id)
+        self.db.commit()
+        return self._to_response(period, date.today())
+
     def _get(self, period_id: int) -> CollectionPeriod:
         period = self.db.query(CollectionPeriod).filter(CollectionPeriod.id == period_id).first()
         if not period:

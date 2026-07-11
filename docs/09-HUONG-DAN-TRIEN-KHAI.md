@@ -186,17 +186,37 @@ sudo crontab -e
 
 ## 8. Khởi tạo hệ thống lần đầu
 
-Seed chỉ tạo **roles + admin**. Không có dữ liệu mẫu.
+**Deploy không tự chạy seed** — dữ liệu hiện có được giữ nguyên khi cập nhật phiên bản.
 
-Sau đăng nhập admin, thực hiện theo thứ tự:
+Chỉ chạy `init_db.py` **thủ công một lần** khi DB mới (tạo bảng, roles, tài khoản admin nếu chưa có):
 
-1. **Tổ chức** → Tạo Liên Chi đoàn
-2. **Tổ chức** → Tạo Chi đoàn (chọn Liên chi)
-3. **Tài khoản** → Tạo user (Bí thư, Liên chi, CTV...)
-4. **Quản lý lớp** → Tạo lớp, import danh sách Excel
-5. **Đoàn viên / Sổ đoàn** → Quản lý nghiệp vụ
+```bash
+# VPS (docker-compose.vps.yml)
+docker compose -f docker-compose.vps.yml exec backend python scripts/init_db.py
 
-### Xóa data cũ (nếu đã có DB từ trước)
+# Hoặc docker-compose.prod.yml
+docker compose -f docker-compose.prod.yml exec backend python scripts/init_db.py
+```
+
+Script **không** tạo dữ liệu mẫu (khóa, chi đoàn, đoàn viên). Không ghi đè user đã có.
+
+Sau đăng nhập admin (`admin` / `admin123` — đổi mật khẩu ngay), thiết lập theo thứ tự:
+
+**Super Admin:**
+1. **Liên chi** → Tạo Liên Chi đoàn
+2. **Tài khoản** → Tạo user Liên chi, Bí thư...
+3. **Quản lý Khóa** → Tạo khóa (D25, D26...)
+4. **Quản lý Chi đoàn** → Tạo chi đoàn, import Excel đoàn viên
+5. **Kỳ cập nhật** → Mở khoảng thời gian Bí thư cập nhật nộp sổ/phí
+
+**Liên Chi đoàn:** Khóa → Chi đoàn → Kỳ cập nhật → Tài khoản Bí thư → Import đoàn viên
+
+### Khôi phục dữ liệu đã vô hiệu hóa
+
+- **Khóa:** menu Quản lý Khóa → bật "Hiện khóa đã vô hiệu hóa" → **Khôi phục**, hoặc tạo lại cùng tên khóa
+- **Kỳ cập nhật:** menu Kỳ cập nhật → **Khôi phục** kỳ đã vô hiệu hóa
+
+### Xóa data cũ (nếu cần reset thủ công)
 
 ```bash
 docker compose -f docker-compose.prod.yml exec backend python scripts/reset_data.py
@@ -216,6 +236,8 @@ cd /opt/so-doan-dien-tu
 git pull
 docker compose -f docker-compose.prod.yml up -d --build
 ```
+
+> **Lưu ý:** Lệnh trên chỉ rebuild container, **không** chạy seed hay xóa database.
 
 ## 10. Backup database
 
@@ -274,22 +296,23 @@ docker compose up --build
 | `VITE_API_URL` | API URL cho frontend build | `https://sodoan.lcdkhoacntt1.com/api/v1` |
 | `CORS_ORIGINS` | Domain được phép gọi API | Domain production |
 | `DEBUG` | Debug mode | `false` |
-| `RATE_LIMIT_MAX_REQUESTS` | Số request tối đa/1 IP trong window trước khi blacklist | `10` |
-| `RATE_LIMIT_WINDOW_SECONDS` | Cửa sổ đếm request (giây) | `1` |
+| `RATE_LIMIT_MAX_REQUESTS` | Số request tối đa/1 IP trong window trước khi blacklist | `20` |
+| `RATE_LIMIT_WINDOW_SECONDS` | Cửa sổ đếm request (giây) | `0.1` |
 
 ## 15. Bảo mật & chống tấn công
 
 Hệ thống có **4 lớp bảo vệ**:
 
 ### Lớp 1 — Nginx (server)
-- Rate limit: **10 req/s** burst (khớp rule backend)
+- Rate limit: **20 req burst** / ~200 req/s (khớp rule backend)
 - Login: **5 req/phút** / IP
 - Giới hạn kết nối đồng thời: 20/IP
 - Security headers: `X-Frame-Options`, `X-Content-Type-Options`, ...
 - Ẩn `server_tokens`, chặn truy cập file ẩn (`/.env`, ...)
 
 ### Lớp 2 — Backend (FastAPI)
-- **Tự động blacklist** khi cùng 1 IP gửi **> 10 request trong 1 giây**
+- **Tự động blacklist** khi cùng 1 IP gửi **> 20 request trong 0.1 giây**
+- **Super Admin** đăng nhập: **không** bị đếm rate limit / blacklist
 - Login: **> 5 lần/phút** → blacklist
 - IP blacklist lưu **database** (bảng `ip_blacklist`), chặn vĩnh viễn cho đến khi admin gỡ
 - Ghi log sự kiện bảo mật (`security_events`)

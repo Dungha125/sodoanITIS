@@ -62,7 +62,7 @@ pip install -r requirements.txt
 
 # Cần PostgreSQL chạy sẵn, cập nhật DATABASE_URL trong .env
 copy .env.example .env
-python scripts/seed_data.py
+python scripts/init_db.py
 uvicorn app.main:app --reload --port 8000
 ```
 

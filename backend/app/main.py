@@ -35,7 +35,7 @@ app = FastAPI(
 if not settings.DEBUG:
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["sodoan.lcdkhoacntt1.com", "localhost", "127.0.0.1", "backend"],
+        allowed_hosts=settings.allowed_hosts_list,
     )
 
 app.add_middleware(SecurityMiddleware)

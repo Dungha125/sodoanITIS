@@ -22,7 +22,8 @@ _LIEN_CHI = [ROLE_SUPER_ADMIN, ROLE_LIEN_CHI_DOAN]
 _BI_THU_VIEW = [ROLE_SUPER_ADMIN, ROLE_LIEN_CHI_DOAN, ROLE_BI_THU]
 
 PERMISSIONS = {
-    "admin": [ROLE_SUPER_ADMIN],
+    "users.manage": [ROLE_SUPER_ADMIN, ROLE_LIEN_CHI_DOAN],
+  "admin": [ROLE_SUPER_ADMIN],
     "dashboard": _BI_THU_VIEW,
     "cohorts.manage": _LIEN_CHI,
     "departments.manage": _LIEN_CHI,

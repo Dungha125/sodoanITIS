@@ -1,8 +1,9 @@
 """Authentication controller."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.middleware.security import get_client_ip
 from app.permissions.dependencies import get_current_user
 from app.schemas.auth import LoginRequest, LoginResponse, RefreshRequest, UserResponse
 from app.services.auth_service import AuthService
@@ -11,8 +12,8 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
-    return AuthService(db).login(data)
+def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    return AuthService(db).login(data, client_ip=get_client_ip(request))
 
 
 @router.post("/refresh")

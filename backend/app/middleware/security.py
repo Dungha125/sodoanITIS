@@ -7,7 +7,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.database import SessionLocal
+from app.permissions.roles import ROLE_SUPER_ADMIN
 from app.services.security_service import SecurityService
+from app.utils.security import decode_token
 
 logger = logging.getLogger("security")
 
@@ -29,6 +31,16 @@ def get_client_ip(request: Request) -> str:
     return "unknown"
 
 
+def is_super_admin_request(request: Request) -> bool:
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return False
+    payload = decode_token(auth[7:])
+    if not payload or payload.get("type") != "access":
+        return False
+    return payload.get("role") == ROLE_SUPER_ADMIN
+
+
 class SecurityMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
@@ -40,7 +52,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         ip = get_client_ip(request)
         user_agent = request.headers.get("User-Agent", "")[:500]
 
-        if ip in settings.security_whitelist_ips:
+        if ip in settings.security_whitelist_ips or is_super_admin_request(request):
             response = await call_next(request)
             return self._add_headers(response)
 
@@ -48,7 +60,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         try:
             svc = SecurityService(db)
 
-            if svc.is_blacklisted(ip):
+            if svc.is_blacklisted(ip) and not path.endswith(LOGIN_PATH_SUFFIX):
                 svc.log_event(ip, "BLOCKED", path, user_agent, "IP trong blacklist")
                 return JSONResponse(
                     status_code=403,
@@ -68,11 +80,12 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 svc.blacklist_ip(ip, reason, count)
                 svc.log_event(ip, "AUTO_BLACKLIST", path, user_agent, reason)
                 logger.warning("Auto-blacklisted IP %s: %s", ip, reason)
-                return JSONResponse(
-                    status_code=403,
-                    content={"detail": "IP bị chặn do gửi quá nhiều request trong thời gian ngắn."},
-                    headers=self._security_headers(),
-                )
+                if not path.endswith(LOGIN_PATH_SUFFIX):
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "IP bị chặn do gửi quá nhiều request trong thời gian ngắn."},
+                        headers=self._security_headers(),
+                    )
 
             response = await call_next(request)
             return self._add_headers(response)

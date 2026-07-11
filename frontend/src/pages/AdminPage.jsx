@@ -46,8 +46,8 @@ export default function AdminPage() {
   });
 
   const { data: lienChiList } = useQuery({
-    queryKey: ['lien-chi'],
-    queryFn: () => lienChiApi.list().then((r) => r.data),
+    queryKey: ['lien-chi', isSuperAdmin ? 'all' : 'list'],
+    queryFn: () => (isSuperAdmin ? lienChiApi.listAll() : lienChiApi.list()).then((r) => r.data),
   });
 
   const { data: blacklist } = useQuery({
@@ -83,9 +83,9 @@ export default function AdminPage() {
 
   const openCreate = () => {
     setModal({});
-    setRoleCode('');
-    reset({ role_code: 'bi_thu' });
-    setRoleCode('bi_thu');
+    const defaultRole = isSuperAdmin ? 'lien_chi_doan' : 'bi_thu';
+    setRoleCode(defaultRole);
+    reset({ role_code: defaultRole });
   };
 
   const openEdit = (u) => {
@@ -111,7 +111,9 @@ export default function AdminPage() {
     <div>
       <PageHeader
         title="Quản trị hệ thống"
-        subtitle={isLienChi ? 'Tài khoản thuộc Liên chi của bạn (Bí thư, Đoàn viên...)' : 'Tài khoản & bảo mật'}
+        subtitle={isLienChi
+          ? 'Tài khoản cấp Chi đoàn: Bí thư, Phó Bí thư, Đoàn viên'
+          : 'Super Admin tạo được: Đoàn trường → Liên chi → Bí thư → Phó Bí thư → Đoàn viên'}
       >
         {tab === 'users' && (
           <button className="btn btn-primary" onClick={openCreate}>
@@ -243,22 +245,21 @@ export default function AdminPage() {
                       if (!['bi_thu', 'pho_bi_thu', 'ctv'].includes(v)) setValue('department_id', '');
                       if (v !== 'lien_chi_doan') setValue('lien_chi_id', '');
                     }}>
-                      {(roles || []).filter((r) => (
-                        isSuperAdmin
-                          ? (r.code !== 'super_admin' || modal.id)
-                          : !['super_admin', 'doan_truong', 'lien_chi_doan'].includes(r.code)
-                      )).map((r) => (
+                      {(roles || []).map((r) => (
                         <option key={r.code} value={r.code}>{ROLE_LABELS[r.code] || r.name}</option>
                       ))}
                     </select>
                   </div>
                   {needsLienChi && (
                     <div className="col-md-6">
-                      <label className="form-label">Liên Chi đoàn</label>
+                      <label className="form-label">Liên Chi đoàn *</label>
                       <select className="form-select" {...register('lien_chi_id', { required: needsLienChi })}>
-                        <option value="">Chọn liên chi</option>
+                        <option value="">— Chọn Liên chi —</option>
                         {(lienChiList || []).map((lc) => <option key={lc.id} value={lc.id}>{lc.name}</option>)}
                       </select>
+                      {!(lienChiList || []).length && (
+                        <p className="form-text small text-warning">Chưa có Liên chi — tạo ở menu Liên chi trước.</p>
+                      )}
                     </div>
                   )}
                   {needsDept && (
