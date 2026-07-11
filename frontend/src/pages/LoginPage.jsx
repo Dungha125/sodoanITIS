@@ -8,6 +8,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { register, handleSubmit } = useForm();
 
   const onSubmit = async (data) => {
@@ -17,36 +18,98 @@ export default function LoginPage() {
       toast.success('Đăng nhập thành công');
       navigate('/');
     } catch (err) {
-      toast.error(err.response?.data?.detail?.message || 'Sai tài khoản hoặc mật khẩu');
+      toast.error(err.response?.data?.detail?.message || err.response?.data?.detail || 'Sai tài khoản hoặc mật khẩu');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-page d-flex align-items-center justify-content-center">
-      <div className="card shadow-lg login-card" style={{ width: 420 }}>
-        <div className="card-body p-5">
-          <div className="text-center mb-4">
-            <i className="bi bi-journal-bookmark-fill login-icon" style={{ fontSize: 48 }}></i>
-            <h4 className="mt-2 fw-bold">Sổ Đoàn Điện tử</h4>
-            <p className="text-muted">Hệ thống quản lý vòng đời sổ đoàn</p>
+    <div className="login-page">
+      <div className="login-shell">
+        <div className="login-brand d-none d-lg-flex">
+          <div className="login-brand-inner">
+            <div className="login-brand-badge">
+              <i className="bi bi-shield-check"></i>
+            </div>
+            <h1>Sổ Đoàn Điện tử</h1>
+            <p className="login-brand-desc">
+              Hệ thống quản lý nộp sổ đoàn và phí đoàn cho Liên chi Đoàn Khoa CNTT.
+            </p>
+            <ul className="login-features">
+              <li><i className="bi bi-check-circle-fill"></i> Theo dõi tiến độ theo Chi đoàn</li>
+              <li><i className="bi bi-check-circle-fill"></i> Cập nhật trạng thái nộp sổ, nộp phí</li>
+              <li><i className="bi bi-check-circle-fill"></i> Thống kê tổng hợp theo khóa</li>
+            </ul>
           </div>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="mb-3">
-              <label className="form-label">Tài khoản</label>
-              <input className="form-control" {...register('username', { required: true })} placeholder="admin" />
+        </div>
+
+        <div className="login-form-panel">
+          <div className="login-card">
+            <div className="login-card-header">
+              <div className="login-logo">
+                <i className="bi bi-journal-bookmark-fill"></i>
+              </div>
+              <h2>Đăng nhập</h2>
+              <p>Nhập tài khoản được cấp bởi Liên chi</p>
             </div>
-            <div className="mb-4">
-              <label className="form-label">Mật khẩu</label>
-              <input type="password" className="form-control" {...register('password', { required: true })} />
-            </div>
-            <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-            </button>
-          </form>
-          <div className="mt-3 small text-muted text-center">
-            Tài khoản mặc định: admin / admin123
+
+            <form onSubmit={handleSubmit(onSubmit)} className="login-form">
+              <div className="mb-3">
+                <label className="form-label fw-medium">Tài khoản</label>
+                <div className="input-group login-input-group">
+                  <span className="input-group-text"><i className="bi bi-person"></i></span>
+                  <input
+                    className="form-control"
+                    autoComplete="username"
+                    placeholder="Nhập tài khoản"
+                    {...register('username', { required: true })}
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="form-label fw-medium">Mật khẩu</label>
+                <div className="input-group login-input-group">
+                  <span className="input-group-text"><i className="bi bi-lock"></i></span>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-control"
+                    autoComplete="current-password"
+                    placeholder="Nhập mật khẩu"
+                    {...register('password', { required: true })}
+                  />
+                  <button
+                    type="button"
+                    className="input-group-text login-toggle-pw"
+                    onClick={() => setShowPassword((v) => !v)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  >
+                    <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" className="btn btn-primary w-100 login-submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Đang đăng nhập...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-box-arrow-in-right me-2"></i>
+                    Đăng nhập
+                  </>
+                )}
+              </button>
+            </form>
+
+            <p className="login-footer-note">
+              <i className="bi bi-info-circle me-1"></i>
+              Liên hệ Bí thư hoặc Liên chi nếu chưa có tài khoản.
+            </p>
           </div>
         </div>
       </div>

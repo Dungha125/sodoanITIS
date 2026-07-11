@@ -14,6 +14,7 @@ import DepartmentsPage from './pages/DepartmentsPage';
 import CohortsPage from './pages/CohortsPage';
 import PeriodsPage from './pages/PeriodsPage';
 import AdminPage from './pages/AdminPage';
+import OrganizationPage from './pages/OrganizationPage';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30000 } } });
 
@@ -30,11 +31,12 @@ function AppRoutes() {
       <Route path="/" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
         <Route index element={<PermissionRoute permission="dashboard"><DashboardPage /></PermissionRoute>} />
         <Route path="stats" element={<PermissionRoute permission="stats.overview"><StatsPage /></PermissionRoute>} />
+        <Route path="organization" element={<PermissionRoute permission="admin"><OrganizationPage /></PermissionRoute>} />
+        <Route path="cohorts" element={<PermissionRoute permission="cohorts.manage"><CohortsPage /></PermissionRoute>} />
         <Route path="departments" element={<PermissionRoute permission="departments.manage"><DepartmentsPage /></PermissionRoute>} />
         <Route path="students" element={<PermissionRoute permission="students.view"><StudentsPage /></PermissionRoute>} />
-        <Route path="cohorts" element={<PermissionRoute permission="cohorts.manage"><CohortsPage /></PermissionRoute>} />
         <Route path="periods" element={<PermissionRoute permission="periods.manage"><PeriodsPage /></PermissionRoute>} />
-        <Route path="admin" element={<PermissionRoute permission="admin"><AdminPage /></PermissionRoute>} />
+        <Route path="admin" element={<PermissionRoute permission="users.manage"><AdminPage /></PermissionRoute>} />
       </Route>
     </Routes>
   );

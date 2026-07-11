@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { usersApi, departmentsApi, lienChiApi, securityApi } from '../api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyOrgBanner from '../components/common/EmptyOrgBanner';
+import { useAuth } from '../contexts/AuthContext';
 
 const ROLE_LABELS = {
   super_admin: 'Super Admin',
@@ -118,12 +119,14 @@ export default function AdminPage() {
         <li className="nav-item">
           <button className={`nav-link ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Tài khoản</button>
         </li>
-        <li className="nav-item">
-          <button className={`nav-link ${tab === 'security' ? 'active' : ''}`} onClick={() => setTab('security')}>Bảo mật (Blacklist)</button>
-        </li>
+        {isSuperAdmin && (
+          <li className="nav-item">
+            <button className={`nav-link ${tab === 'security' ? 'active' : ''}`} onClick={() => setTab('security')}>Bảo mật (Blacklist)</button>
+          </li>
+        )}
       </ul>
 
-      {tab === 'security' ? (
+      {tab === 'security' && isSuperAdmin ? (
         <div className="card border-0 shadow-sm">
           <div className="card-header bg-transparent">
             <strong>IP bị chặn</strong>

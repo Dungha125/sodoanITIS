@@ -11,8 +11,10 @@ export const dashboardApi = {
 
 export const cohortsApi = {
   list: () => api.get('/cohorts'),
+  listManage: () => api.get('/cohorts/manage'),
   create: (data) => api.post('/cohorts', data),
   update: (id, data) => api.put(`/cohorts/${id}`, data),
+  restore: (id) => api.post(`/cohorts/${id}/restore`),
   delete: (id) => api.delete(`/cohorts/${id}`),
 };
 
@@ -26,6 +28,7 @@ export const periodsApi = {
   active: () => api.get('/periods/active'),
   create: (data) => api.post('/periods', data),
   update: (id, data) => api.put(`/periods/${id}`, data),
+  restore: (id) => api.post(`/periods/${id}/restore`),
   delete: (id) => api.delete(`/periods/${id}`),
 };
 

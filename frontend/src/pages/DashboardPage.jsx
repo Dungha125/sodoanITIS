@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi } from '../api';
+import { dashboardApi, cohortsApi, departmentsApi, lienChiApi } from '../api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import SetupGuide from '../components/common/SetupGuide';
 import { useAuth } from '../contexts/AuthContext';
 
 function StatCard({ title, value, icon, color = 'primary', suffix = '' }) {
@@ -29,6 +30,24 @@ export default function DashboardPage() {
     queryFn: () => dashboardApi.stats().then((r) => r.data),
   });
 
+  const { data: cohorts } = useQuery({
+    queryKey: ['cohorts'],
+    queryFn: () => cohortsApi.list().then((r) => r.data),
+    enabled: user?.role_code !== 'bi_thu',
+  });
+
+  const { data: departments } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => departmentsApi.list().then((r) => r.data),
+    enabled: user?.role_code !== 'bi_thu',
+  });
+
+  const { data: lienChi } = useQuery({
+    queryKey: ['lien-chi-all'],
+    queryFn: () => lienChiApi.listAll().then((r) => r.data),
+    enabled: user?.role_code === 'super_admin',
+  });
+
   if (isLoading) return <LoadingSpinner />;
 
   const isBiThu = user?.role_code === 'bi_thu';
@@ -41,6 +60,10 @@ export default function DashboardPage() {
       <p className="text-muted small mb-4">
         {isBiThu ? `Chi đoàn: ${stats?.name || '—'}` : `Khóa: ${stats?.cohort_name || '—'}`}
       </p>
+
+      {user?.role_code !== 'bi_thu' && (
+        <SetupGuide cohorts={cohorts} departments={departments} lienChi={lienChi} />
+      )}
 
       {period && (
         <div className={`alert ${period.is_open ? 'alert-success' : 'alert-warning'} py-2 small`}>

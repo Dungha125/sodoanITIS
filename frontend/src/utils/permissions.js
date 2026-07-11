@@ -1,6 +1,7 @@
 export const ROLE_SUPER_ADMIN = 'super_admin';
 
 const PERMISSIONS = {
+  'users.manage': ['super_admin', 'lien_chi_doan'],
   admin: ['super_admin'],
   dashboard: ['super_admin', 'lien_chi_doan', 'bi_thu'],
   'cohorts.manage': ['super_admin', 'lien_chi_doan'],
